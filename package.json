@@ -1,0 +1,11 @@
+{
+  "name": "troopers-seite",
+  "private": true,
+  "type": "module",
+  "description": "Website des Brawl Stars Clubs Troopers – statisch, Daten per GitHub Actions",
+  "scripts": {
+    "daten": "node scripts/build-data.mjs",
+    "vorschau": "node scripts/vorschau.mjs"
+  },
+  "engines": { "node": ">=18" }
+}

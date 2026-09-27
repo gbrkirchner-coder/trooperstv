@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Troopers · Brawl Stars Club</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-rays" aria-hidden="true"></div>
+
+  <nav class="nav">
+    <a href="#top" class="nav-logo"><img id="navBadge" alt=""> TROOPERS</a>
+    <div class="nav-links">
+      <a href="#club">Club</a><a href="#meta">Meta</a><a href="#ranking">Ranking</a>
+      <a href="#top-brawler">Top Brawler</a><a href="#members">Mitglieder</a><a href="#tv">TV</a><a href="#events">Events</a>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="hero-burst" aria-hidden="true"></div>
+    <img class="hero-model m1" alt="" data-id="16000000">
+    <img class="hero-model m2" alt="" data-id="16000023">
+    <div class="hero-inner">
+      <img class="hero-badge" id="heroBadge" alt="Club-Abzeichen">
+      <p class="hero-kicker">Brawl Stars Club</p>
+      <h1 class="hero-title" id="clubName">TROOPERS</h1>
+      <p class="hero-tag" id="clubTag">#…</p>
+      <div class="hero-chips">
+        <span class="chip trophy"><i class="ico-trophy"></i><b id="heroTrophies">0</b></span>
+        <span class="chip"><b id="heroMembers">0</b>/30 Mitglieder</span>
+        <span class="chip" id="heroType">offen</span>
+      </div>
+      <a class="btn btn-yellow" href="#club">LOS GEHT'S!</a>
+    </div>
+    <div class="data-banner" id="dataBanner" hidden></div>
+  </header>
+
+  <main>
+    <section id="club" class="section">
+      <h2 class="title">Club-Übersicht</h2>
+      <p class="desc" id="clubDesc"></p>
+      <div class="stats">
+        <div class="stat blue"><span class="stat-label">Trophäen gesamt</span><b class="count" id="stTotal">0</b></div>
+        <div class="stat purple"><span class="stat-label">Ø Trophäen</span><b class="count" id="stAvg">0</b></div>
+        <div class="stat green"><span class="stat-label">Benötigt</span><b class="count" id="stReq">0</b></div>
+        <div class="stat orange"><span class="stat-label">Siegquote (letzte Kämpfe)</span><b><span class="count" id="stWin">0</span>%</b></div>
+        <div class="stat red"><span class="stat-label">Ranked-Siege (letzte Kämpfe)</span><b class="count" id="stRanked">0</b></div>
+        <div class="stat pink"><span class="stat-label">Freie Plätze</span><b class="count" id="stFree">0</b></div>
+      </div>
+      <div class="roles" id="roles"></div>
+    </section>
+
+    <section id="meta" class="section">
+      <h2 class="title">Meistgespielte Brawler</h2>
+      <p class="sub">Ausgewertet aus den letzten Kämpfen aller Club-Mitglieder (Battlelog, max. 25 pro Spieler).</p>
+      <div class="meta-grid" id="metaGrid"></div>
+    </section>
+
+    <section id="ranking" class="section">
+      <h2 class="title">Kategorie-Ranking · Season</h2>
+      <p class="sub">Wer führt im Club? Wähle eine Kategorie.</p>
+      <div class="tabs" id="rankTabs"></div>
+      <div class="podium" id="podium"></div>
+      <ol class="rank-list" id="rankList"></ol>
+    </section>
+
+    <section id="top-brawler" class="section">
+      <h2 class="title">Top Ranked Brawler</h2>
+      <p class="sub">Die stärksten Brawler im Club – nach Trophäen des jeweils besten Mitglieds.</p>
+      <div class="brawler-grid" id="topBrawlers"></div>
+
+      <div class="panel global">
+        <div class="panel-head">
+          <h3>Weltrangliste pro Brawler</h3>
+          <div class="selects">
+            <select id="globalBrawler" aria-label="Brawler"></select>
+            <select id="globalCountry" aria-label="Region">
+              <option value="global">🌍 Global</option><option value="de">🇩🇪 Deutschland</option>
+              <option value="at">🇦🇹 Österreich</option><option value="ch">🇨🇭 Schweiz</option>
+            </select>
+          </div>
+        </div>
+        <ol class="global-list" id="globalList"></ol>
+      </div>
+    </section>
+
+    <section id="members" class="section">
+      <h2 class="title">Mitglieder</h2>
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Spieler suchen…">
+        <select id="sortBy" aria-label="Sortierung">
+          <option value="trophies">Trophäen</option><option value="form">Aktuelle Form</option>
+          <option value="expLevel">Level</option><option value="role">Rolle</option>
+        </select>
+      </div>
+      <div class="member-grid" id="memberGrid"></div>
+    </section>
+
+    <section id="tv" class="section">
+      <h2 class="title">Troopers TV</h2>
+      <p class="sub">Die neuesten Clips unserer Mitglieder – direkt vom YouTube-Kanal <b id="tvChannel">BrawlStars_TV</b>.</p>
+      <div class="tv-main">
+        <div class="tv-player" id="tvPlayer"></div>
+        <div class="tv-side">
+          <ol class="tv-list" id="tvList"></ol>
+          <a class="btn btn-red" id="tvSubscribe" target="_blank" rel="noopener">▶ ABONNIEREN</a>
+        </div>
+      </div>
+      <div id="tvShortsWrap" hidden>
+        <h3 class="tv-shorts-title">Shorts</h3>
+        <div class="tv-shorts" id="tvShorts"></div>
+      </div>
+    </section>
+
+    <section id="events" class="section">
+      <h2 class="title">Aktuelle Events</h2>
+      <div class="event-grid" id="eventGrid"></div>
+    </section>
+
+    <section class="section api-info">
+      <h2 class="title small">Woher kommen die Daten?</h2>
+      <div class="info-cards">
+        <div class="info"><h4>Offizielle API</h4><p>Club, Mitglieder, Profile, Battlelogs, Ranglisten und Event-Rotation kommen von <b>developer.brawlstars.com</b> – über einen automatischen Abruf bei GitHub, der den API-Key geheim hält.</p></div>
+        <div class="info"><h4>Bilder</h4><p>Brawler-Modelle, Profilbilder, Club-Abzeichen und Karten stammen vom Brawlify-CDN (Original-Spielgrafiken).</p></div>
+        <div class="info"><h4>Aktualisierung</h4><p>Die Daten werden alle 30 Minuten automatisch aktualisiert. Stand: <b id="updatedAt">–</b></p></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>This material is unofficial and is not endorsed by Supercell. For more information see Supercell's Fan Content Policy: <a href="https://www.supercell.com/fan-content-policy" target="_blank" rel="noopener">supercell.com/fan-content-policy</a>.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+  <script src="demo.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+.env
+server.log
+node_modules/
+.DS_Store
+# Daten werden von GitHub Actions bei jedem Lauf frisch erzeugt
+public/data/
