@@ -1,7 +1,7 @@
 # Troopers – Brawl Stars Club-Seite
 
 Statische Website (GSAP-Animationen, Brawl-Stars-Look) für den Club **TROOPERS** (#2VRLRP9PU),
-gehostet kostenlos auf **GitHub Pages** unter **trooperstv.de**.
+gehostet kostenlos auf **GitHub Pages** unter **troopers.tv**.
 
 ## So funktioniert's
 - `public/` – die Seite (HTML, CSS, JS). Sie liest nur Dateien aus `public/data/`.
