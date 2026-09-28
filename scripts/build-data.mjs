@@ -160,6 +160,7 @@ async function youtubeRss() {
 
 async function youtubeFeed() {
   const errors = [];
+  console.log(`  YouTube: API-Key ${YT_API_KEY ? 'vorhanden (' + YT_API_KEY.slice(0, 6) + '…)' : 'FEHLT – Secret YT_API_KEY prüfen'}`);
   if (YT_API_KEY) { try { return await youtubeApi(); } catch (e) { errors.push('API: ' + e.message); } }
   try { return await youtubeRss(); } catch (e) { errors.push(e.message); }
   // Letzter guter Stand (lokal oder von der Live-Seite), damit der Bereich nicht leer wird
@@ -206,7 +207,7 @@ async function main() {
     clubStats(CLUB_TAG),
     bs('/brawlers'),
     bs('/events/rotation'),
-    YT_CHANNEL_ID ? youtubeFeed().catch((e) => (console.warn('  ⚠ YouTube:', e.message), null)) : null,
+    YT_CHANNEL_ID ? youtubeFeed().catch((e) => (console.warn('  ⚠ YouTube fehlgeschlagen:', e.message), null)) : null,
   ]);
   write('club.json', club);
   write('brawlers.json', { items: brawlers.items.map((b) => ({ id: b.id, name: b.name })) });
