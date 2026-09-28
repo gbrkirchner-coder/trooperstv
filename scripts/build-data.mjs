@@ -120,10 +120,33 @@ async function clubStats(tag) {
   };
 }
 
-// YouTube-Kanal über den öffentlichen RSS-Feed (kein API-Key nötig)
-async function youtubeFeed() {
+// YouTube-Kanal: 1) YouTube Data API (Key YT_API_KEY), 2) öffentlicher RSS-Feed, 3) letzter Stand der Live-Seite
+const YT_API_KEY = process.env.YT_API_KEY || '';
+const isoSeconds = (iso) => { const m = (iso || '').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/) || []; return (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0); };
+
+async function youtubeApi() {
+  const api = (p) => fetch(`https://www.googleapis.com/youtube/v3/${p}&key=${YT_API_KEY}`).then(async (r) => {
+    const j = await r.json(); if (!r.ok) throw new Error(j.error?.message || r.status); return j;
+  });
+  const uploads = 'UU' + YT_CHANNEL_ID.slice(2);
+  const [ch, pl] = await Promise.all([
+    api(`channels?part=snippet&id=${YT_CHANNEL_ID}`),
+    api(`playlistItems?part=contentDetails&maxResults=20&playlistId=${uploads}`),
+  ]);
+  const ids = pl.items.map((i) => i.contentDetails.videoId).join(',');
+  const vs = ids ? await api(`videos?part=snippet,statistics,contentDetails&id=${ids}`) : { items: [] };
+  const videos = vs.items.map((v) => ({
+    id: v.id, title: v.snippet.title, published: v.snippet.publishedAt,
+    // Shorts: bis 45 s oder #shorts im Titel (lange Videos sind bei uns immer länger)
+    short: isoSeconds(v.contentDetails.duration) <= 45 || /#shorts/i.test(v.snippet.title),
+    views: +v.statistics.viewCount || 0,
+  })).sort((a, b) => b.published.localeCompare(a.published));
+  return { channelId: YT_CHANNEL_ID, channelTitle: ch.items?.[0]?.snippet?.title || 'TroopersTV', videos, updatedAt: new Date().toISOString(), quelle: 'api' };
+}
+
+async function youtubeRss() {
   const res = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${YT_CHANNEL_ID}`);
-  if (!res.ok) throw new Error(`YouTube ${res.status}`);
+  if (!res.ok) throw new Error(`RSS ${res.status}`);
   const xml = await res.text();
   const tag = (s, t) => (s.match(new RegExp(`<${t}[^>]*>([\\s\\S]*?)</${t}>`)) || [])[1] || '';
   const decode = (s) => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
@@ -132,7 +155,19 @@ async function youtubeFeed() {
     const views = (e.match(/<media:statistics views="(\d+)"/) || [])[1];
     return { id: tag(e, 'yt:videoId'), title: decode(tag(e, 'title')), published: tag(e, 'published'), short: link.includes('/shorts/'), views: views ? Number(views) : null };
   });
-  return { channelId: YT_CHANNEL_ID, channelTitle: decode(tag(xml, 'title')), videos, updatedAt: new Date().toISOString() };
+  return { channelId: YT_CHANNEL_ID, channelTitle: decode(tag(xml, 'title')), videos, updatedAt: new Date().toISOString(), quelle: 'rss' };
+}
+
+async function youtubeFeed() {
+  const errors = [];
+  if (YT_API_KEY) { try { return await youtubeApi(); } catch (e) { errors.push('API: ' + e.message); } }
+  try { return await youtubeRss(); } catch (e) { errors.push(e.message); }
+  // Letzter guter Stand (lokal oder von der Live-Seite), damit der Bereich nicht leer wird
+  const local = path.join(OUT, 'youtube.json');
+  const prev = fs.existsSync(local) ? JSON.parse(fs.readFileSync(local, 'utf8'))
+    : SITE_URL ? await fetch(`${SITE_URL}/data/youtube.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null;
+  if (prev?.videos?.length) { console.warn('  ⚠ YouTube nicht erreichbar (' + errors.join('; ') + ') – letzter Stand wird verwendet'); return prev; }
+  throw new Error(errors.join('; '));
 }
 
 // Weltrangliste je Brawler und Region – teuer (≈ Brawler × Regionen Abfragen), daher nur alle RANKING_MAX_AGE_H Stunden neu.

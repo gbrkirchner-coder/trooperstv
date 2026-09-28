@@ -36,6 +36,7 @@ jobs:
           CLUB_TAG: '#2VRLRP9PU'
           USE_ROYALEAPI_PROXY: 'true'
           YT_CHANNEL_ID: UCb0TxLVVkeo37lrNc8sl3kA
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
           SITE_URL: https://troopers.tv
 
       - uses: actions/configure-pages@v5

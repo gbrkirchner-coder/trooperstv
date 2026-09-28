@@ -54,6 +54,32 @@ const state = { data: null, demo: false, category: 'trophies' };
   scrollAnimations();
 })();
 
+// ---------- Aufklappen („Alle anzeigen“) ----------
+const isMobile = () => matchMedia('(max-width: 640px)').matches;
+/** Zeigt nur die ersten `keep` Einträge; der Rest klappt per Knopf animiert auf. */
+function collapsible(listSel, btnSel, keep, noun) {
+  const list = $(listSel), btn = $(btnSel);
+  const items = [...list.children].filter((el) => !el.classList.contains('muted'));
+  items.forEach((el, i) => el.classList.toggle('more', i >= keep));
+  const extra = items.length - keep;
+  list.classList.add('is-collapsed');
+  btn.hidden = extra <= 0;
+  const label = (open) => open ? 'Weniger anzeigen ▴' : `${keep === 0 ? 'Alle' : 'Weitere'} ${extra} ${noun} anzeigen ▾`;
+  btn.textContent = label(false); btn.setAttribute('aria-expanded', 'false');
+  btn.onclick = () => {
+    const opening = list.classList.contains('is-collapsed');
+    list.classList.toggle('is-collapsed', !opening);
+    btn.textContent = label(opening); btn.setAttribute('aria-expanded', String(opening));
+    if (opening) {
+      gsap.fromTo(list.querySelectorAll('.more'), { opacity: 0, y: -18, scale: 0.96 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.35, stagger: 0.03, ease: 'back.out(1.7)' });
+    } else {
+      list.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    ScrollTrigger.refresh();
+  };
+}
+
 // ---------- Club ----------
 function renderClub() {
   const { club, members } = state.data;
@@ -64,7 +90,6 @@ function renderClub() {
 
   $('#clubName').innerHTML = [...String(club.name).toUpperCase()].map((c) => `<span class="ch">${c === ' ' ? '&nbsp;' : esc(c)}</span>`).join('');
   $('#clubTag').textContent = club.tag;
-  $('#heroBadge').src = $('#navBadge').src = img.badge(club.badgeId);
   $('#heroType').textContent = { open: 'Offen', inviteOnly: 'Nur mit Einladung', closed: 'Geschlossen' }[club.type] || club.type;
   $('#clubDesc').textContent = club.description || '';
   $('#updatedAt').textContent = new Date(state.data.updatedAt).toLocaleString('de-DE') + (state.demo ? ' (Demo)' : '');
@@ -95,6 +120,7 @@ function renderMeta() {
         <small>${u.picks} Picks · ${((u.picks / total) * 100).toFixed(1)}% · ${Math.round((u.wins / u.picks) * 100)}% Siege</small>
       </div>
     </article>`).join('') : '<p class="muted">Noch keine Kämpfe gefunden.</p>';
+  collapsible('#metaGrid', '#metaMore', isMobile() ? 4 : 9, 'Brawler');
 }
 
 // ---------- Kategorie-Ranking ----------
@@ -143,9 +169,9 @@ function renderRanking(animate) {
     <li><span class="n">${i + 4}</span><img src="${img.icon(m.icon?.id)}" alt="" loading="lazy">
       <span style="color:${color(m.nameColor)}">${esc(m.name)} <span class="role r-${m.role}">${ROLE[m.role] || m.role}</span></span>
       <span class="v ${cat.signed ? (cat.get(m) >= 0 ? 'up' : 'down') : ''}">${val(m)}</span></li>`).join('');
+  collapsible('#rankList', '#rankMore', 0, 'Plätze');
   if (animate) {
     gsap.from('.podium-step', { y: 120, opacity: 0, duration: 0.6, stagger: { each: 0.1, from: 'center' }, ease: 'back.out(1.6)' });
-    gsap.from('.rank-list li', { x: -40, opacity: 0, duration: 0.35, stagger: 0.03, ease: 'power2.out' });
   }
 }
 
@@ -158,6 +184,7 @@ function renderTopBrawlers() {
       <div class="tro">${trophy}${fmt(b.trophies)}</div>
       <div class="owner">von ${esc(b.owner)} · Rang ${b.rank ?? '–'}</div>
     </article>`).join('');
+  collapsible('#topBrawlers', '#brawlerMore', isMobile() ? 6 : 12, 'Brawler');
 }
 
 const rankingCache = {};
@@ -181,6 +208,7 @@ async function setupGlobal() {
       <li><span class="n">${p.rank}</span><img src="${img.icon(p.icon?.id)}" alt="" loading="lazy">
         <span><span style="color:${color(p.nameColor)}">${esc(p.name)}</span><span class="c">${esc(p.club?.name || 'Kein Club')}</span></span>
         <span class="t">${fmt(p.trophies)}</span></li>`).join('') || '<li class="muted">Keine Einträge.</li>';
+    collapsible('#globalList', '#globalMore', isMobile() ? 5 : 10, 'Spieler');
     gsap.from('#globalList li', { y: 20, opacity: 0, duration: 0.3, stagger: 0.04 });
   };
   sel.addEventListener('change', load);
@@ -214,6 +242,8 @@ function renderMembers() {
           <span class="form ${f.trophyDelta >= 0 ? 'up' : 'down'}" title="Letzte ${f.games || 0} Kämpfe">${f.trophyDelta > 0 ? '+' : ''}${f.trophyDelta ?? 0}${wr != null ? `<br><small>${wr}% Siege</small>` : ''}</span></div>` : ''}
       </article>`;
     }).join('') || '<p class="muted">Kein Mitglied gefunden.</p>';
+    // Beim Suchen alle Treffer zeigen, sonst die ersten 6 (Handy) bzw. 12
+    collapsible('#memberGrid', '#memberMore', q ? 999 : (isMobile() ? 6 : 12), 'Mitglieder');
   };
   draw();
   $('#search').addEventListener('input', draw);
@@ -227,7 +257,7 @@ function renderMembers() {
 async function renderTV() {
   let data;
   try { data = await api('data/youtube.json'); } catch { data = null; }
-  const channelUrl = data ? `https://www.youtube.com/channel/${data.channelId}` : 'https://www.youtube.com/';
+  const channelUrl = 'https://www.youtube.com/@BS-TroopersTV';
   $('#tvSubscribe').href = channelUrl + '?sub_confirmation=1';
   if (data) $('#tvChannel').textContent = data.channelTitle;
   const videos = (data?.videos || []).filter((v) => !v.short);
@@ -276,6 +306,7 @@ async function renderEvents() {
       <div class="event-head"><h4>${esc(MODE[e.mode] || cap(e.mode))}</h4><small>${esc(e.map || '')}${endTime ? ' · endet ' + parseTime(endTime) : ''}</small></div>
       <img src="${img.map(e.id)}" alt="${esc(e.map || '')}" loading="lazy" onerror="this.style.display='none'">
     </article>`).join('');
+  collapsible('#eventGrid', '#eventMore', isMobile() ? 4 : 12, 'Events');
 }
 function parseTime(t) {
   const m = t.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/);
@@ -298,12 +329,12 @@ function heroIntro() {
     .from('.hero-title', { scale: 2.4, opacity: 0, duration: 0.6, ease: 'power4.in' }, '-=0.2')
     .to('.hero-title', { x: '+=6', yoyo: true, repeat: 5, duration: 0.04, ease: 'none' })
     .from('.hero-tag, .hero-chips .chip', { y: 30, opacity: 0, stagger: 0.08, duration: 0.5 }, '-=0.1')
-    .from('.hero .btn', { scale: 0, duration: 0.6, ease: 'elastic.out(1, 0.5)' }, '-=0.2')
+    .from('.hero .btn', { scale: 0, duration: 0.6, stagger: 0.12, ease: 'elastic.out(1, 0.5)' }, '-=0.2')
     .from('.hero-model.m1', { x: -400, rotation: -20, opacity: 0, duration: 0.9 }, 0.3)
     .from('.hero-model.m2', { x: 400, rotation: 20, opacity: 0, duration: 0.9 }, 0.45);
   gsap.to('.hero-model.m1', { y: -18, duration: 2.2, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.3 });
   gsap.to('.hero-model.m2', { y: -24, duration: 2.6, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.5 });
-  gsap.to('.hero .btn', { scale: 1.06, duration: 0.8, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 2 });
+  gsap.to('.hero .btn-join', { scale: 1.07, duration: 0.8, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 2 });
   gsap.to('.hero-model.m1', { yPercent: 40, xPercent: -30, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
   gsap.to('.hero-model.m2', { yPercent: 40, xPercent: 30, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
   gsap.to('.hero-inner', { yPercent: 30, opacity: 0.2, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
@@ -327,13 +358,14 @@ function scrollAnimations() {
 
   // Karten-Gruppen per Batch
   const pop = (sel, vars = {}) => {
+    sel = sel.split(',').map((x) => x.trim() + ':not(.more)').join(', ');
     gsap.set(sel, { opacity: 0, y: 50, scale: 0.9 });
     ScrollTrigger.batch(sel, {
       start: 'top 92%', once: true,
       onEnter: (els) => gsap.to(els, { opacity: 1, y: 0, scale: 1, duration: 0.55, stagger: 0.06, ease: 'back.out(1.7)', ...vars }),
     });
   };
-  ['.stat', '.meta-card', '.brawler', '.member', '.event', '.info', '.panel', '.rank-list li', '.tv-player', '.tv-list li', '.tv-short'].forEach((s) => pop(s));
+  ['.stat', '.join-box', '.meta-card', '.brawler', '.member', '.event', '.info', '.panel', '.rank-list li', '.tv-player', '.tv-list li', '.tv-short'].forEach((s) => pop(s));
   gsap.set('.podium-step', { y: 140, opacity: 0 });
   ScrollTrigger.create({ trigger: '#podium', start: 'top 85%', once: true,
     onEnter: () => gsap.to('.podium-step', { y: 0, opacity: 1, duration: 0.7, stagger: { each: 0.12, from: 'center' }, ease: 'back.out(1.6)' }) });

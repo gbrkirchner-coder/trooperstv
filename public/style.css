@@ -79,6 +79,15 @@ a { color: var(--yellow); }
 }
 .btn:active { transform: skew(-6deg) translateY(5px); box-shadow: 0 2px 0 var(--ink), inset 0 -8px 0 rgba(0,0,0,.18); }
 .btn-yellow { background: linear-gradient(#ffe45c, var(--yellow) 55%, var(--yellow-d)); }
+.btn-green { background: linear-gradient(#8cff7a, #3ccf4e 55%, #1f9e36); }
+.hero-buttons { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+.join-box {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-top: 34px; padding: 22px 26px;
+  background: linear-gradient(#3aa0ff, #1463d8); border: 4px solid var(--ink); border-radius: var(--radius); box-shadow: 0 7px 0 var(--ink);
+}
+.join-box h3 { margin: 0 0 4px; font-size: 32px; color: var(--yellow); }
+.join-box p { margin: 0; max-width: 560px; font-weight: 700; }
+.nav-links a.nav-join { background: var(--green); border-color: var(--ink); }
 
 .data-banner {
   position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 3; max-width: min(92vw, 720px);
@@ -250,3 +259,91 @@ select, input[type=search] {
   .podium-name { font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* ---------- Aufklappen ---------- */
+.is-collapsed > .more { display: none !important; }
+.more-btn {
+  display: block; margin: 18px auto 0; padding: 10px 22px; cursor: pointer;
+  font: 400 18px 'Lilita One', 'Nunito', sans-serif; letter-spacing: .5px; color: #fff;
+  background: linear-gradient(#4f7cff, #2448c8); border: 3px solid var(--ink); border-radius: 12px;
+  box-shadow: 0 5px 0 var(--ink); transform: skew(-5deg); transition: transform .1s, box-shadow .1s;
+}
+.more-btn:hover { background: linear-gradient(#6b93ff, #2f55d6); }
+.more-btn:active { transform: skew(-5deg) translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+.more-btn:focus-visible, .tab:focus-visible, .btn:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+
+/* ---------- Logo & YouTube-Header ---------- */
+.hero-badge { width: 190px; height: 190px; }
+.nav-logo img { width: 42px; height: 42px; }
+.tv-banner { display: block; max-width: 100%; margin: 6px 0 16px; border: 4px solid var(--ink); border-radius: var(--radius);
+  overflow: hidden; box-shadow: 0 7px 0 var(--ink); transition: transform .2s; }
+.tv-banner img { width: 100%; height: auto; display: block; }
+.tv-banner:hover { transform: translateY(-3px) rotate(-.3deg); }
+
+/* ---------- Handy: kompakt ---------- */
+@media (max-width: 640px) {
+  .section { padding: 44px 14px 8px; }
+  .title { font-size: 30px; }
+  .sub, .desc { font-size: 14px; margin-bottom: 18px; }
+  .hero { min-height: auto; padding: 36px 16px 70px; }
+  .hero-badge { width: 130px; height: 130px; }
+  .hero-title { -webkit-text-stroke-width: 4px; text-shadow: 0 6px 0 var(--ink); }
+  .chip { font-size: 16px; padding: 6px 12px; }
+  .btn { font-size: 20px; padding: 10px 22px; }
+
+  .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat { padding: 10px; }
+  .stat b { font-size: 26px; }
+  .stat-label { font-size: 11px; }
+  .join-box { padding: 14px; gap: 12px; }
+  .join-box h3 { font-size: 24px; }
+
+  .meta-grid { grid-template-columns: 1fr; gap: 10px; }
+  .meta-card, .meta-card:first-child { grid-column: auto; padding: 8px 10px; gap: 10px; }
+  .meta-card img, .meta-card:first-child img { width: 54px; height: 54px; }
+  .meta-name { font-size: 18px; }
+
+  .tabs { gap: 6px; margin-bottom: 26px; }
+  .tab { font-size: 14px; padding: 6px 10px; }
+  .podium { gap: 8px; }
+  .podium-step.p1 { min-height: 170px; } .podium-step.p2 { min-height: 140px; } .podium-step.p3 { min-height: 120px; }
+  .podium-rank { font-size: 32px; }
+  .podium-val { font-size: 16px; }
+  .rank-list li { grid-template-columns: 30px 32px 1fr auto; gap: 8px; padding: 6px 10px; font-size: 13px; }
+  .rank-list img { width: 32px; height: 32px; }
+
+  .brawler-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+  .brawler { padding: 8px 6px 10px; }
+  .brawler img { height: 74px; }
+  .brawler-name { font-size: 14px; margin-top: 2px; }
+  .brawler .tro { font-size: 14px; }
+  .brawler .owner { display: none; }
+  .panel { padding: 14px; }
+  .panel-head h3 { font-size: 20px; }
+  .global-list { grid-template-columns: 1fr; gap: 6px; }
+
+  /* Mitglieder als kompakte Zeilen */
+  .toolbar input { min-width: 0; flex: 1; }
+  .member-grid { grid-template-columns: 1fr; gap: 8px; }
+  .member { grid-template-columns: 40px 1fr; gap: 10px; padding: 7px 10px; border-width: 3px; box-shadow: 0 4px 0 var(--ink); border-radius: 12px; }
+  .member > img { width: 40px; height: 40px; border-width: 2px; border-radius: 8px; }
+  .member .name { font-size: 16px; }
+  .member .line { margin-top: 1px; font-size: 12px; }
+  .member .line + .line, .member .best { display: none; }
+  .member .tro { font-size: 15px; }
+
+  .tv-banner { border-width: 3px; box-shadow: 0 4px 0 var(--ink); }
+  .tv-list li { grid-template-columns: 96px 1fr; font-size: 13px; }
+  .tv-list img { width: 96px; }
+  .tv-shorts { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tv-short span { font-size: 11px; padding: 18px 6px 6px; }
+
+  .event-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .event-head { padding: 6px 8px; }
+  .event-head h4 { font-size: 14px; }
+  .event-head small { font-size: 11px; }
+  .event img { height: 120px; }
+  .info-cards { gap: 10px; }
+  .info { padding: 12px; }
+  .footer { margin-top: 36px; }
+}
