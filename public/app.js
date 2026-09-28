@@ -1,4 +1,4 @@
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
 const CDN = 'https://cdn.brawlify.com';
 const img = {
@@ -334,7 +334,6 @@ function heroIntro() {
     .from('.hero-model.m2', { x: 400, rotation: 20, opacity: 0, duration: 0.9 }, 0.45);
   gsap.to('.hero-model.m1', { y: -18, duration: 2.2, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.3 });
   gsap.to('.hero-model.m2', { y: -24, duration: 2.6, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.5 });
-  gsap.to('.hero .btn-join', { scale: 1.07, duration: 0.8, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 2 });
   gsap.to('.hero-model.m1', { yPercent: 40, xPercent: -30, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
   gsap.to('.hero-model.m2', { yPercent: 40, xPercent: 30, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
   gsap.to('.hero-inner', { yPercent: 30, opacity: 0.2, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
@@ -379,5 +378,67 @@ function scrollAnimations() {
     c.addEventListener('mouseenter', () => gsap.to(im, { scale: 1.12, rotation: -4, duration: 0.3, ease: 'back.out(3)' }));
     c.addEventListener('mouseleave', () => gsap.to(im, { scale: 1, rotation: 0, duration: 0.3 }));
   });
+  sectionFigures();
+  sectionSnap();
   ScrollTrigger.refresh();
+}
+
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const navH = () => document.querySelector('.nav')?.offsetHeight || 0;
+const sectionTop = (el) => el.getBoundingClientRect().top + scrollY - navH();
+
+// Pro Bereich eine Brawler-Figur: fliegt beim Hereinscrollen von der Seite ein, schwebt, dreht sich mit dem Scrollen und fliegt wieder hinaus
+function sectionFigures() {
+  document.querySelectorAll('.sec-fig').forEach((wrap) => {
+    const im = wrap.querySelector('img');
+    im.src = img.model(im.dataset.id);
+    im.onerror = () => (wrap.style.display = 'none');
+    if (reduceMotion()) return;
+    const dir = wrap.classList.contains('l') ? -1 : 1;
+    const sec = wrap.closest('.section');
+    const tl = gsap.timeline({ scrollTrigger: { trigger: sec, start: 'top 90%', end: 'bottom 10%', scrub: 0.8 } });
+    tl.fromTo(wrap, { xPercent: dir * 140, rotation: dir * 35, scale: 0.4, opacity: 0 },
+                    { xPercent: 0, rotation: dir * -6, scale: 1, opacity: 1, ease: 'back.out(1.6)', duration: 0.25 })
+      .to(wrap, { yPercent: -35, rotation: dir * 6, ease: 'none', duration: 0.55 })
+      .to(wrap, { xPercent: dir * 120, rotation: dir * 30, scale: 0.6, opacity: 0, ease: 'power2.in', duration: 0.2 });
+    gsap.to(im, { y: -12, rotation: dir * -3, duration: 1.6 + Math.random() * 0.6, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+    // kleiner Hüpfer, sobald der Bereich einrastet
+    ScrollTrigger.create({ trigger: sec, start: 'top 55%', onEnter: () => gsap.fromTo(im, { scale: 1 }, { scale: 1.15, duration: 0.18, yoyo: true, repeat: 1, ease: 'power2.out' }) });
+  });
+}
+
+// Einrasten: Nach dem Scrollen gleitet die Seite an den Anfang des nächstgelegenen Bereichs –
+// aber nur, wenn er nah ist. Mitten in langen Bereichen (z. B. Mitglieder) bleibt die Seite, wo sie ist.
+function sectionSnap() {
+  const secs = gsap.utils.toArray('.hero, main .section');
+  // Menü: aktiven Bereich markieren, Klicks weich scrollen
+  secs.forEach((sec) => {
+    if (!sec.id) return;
+    const link = document.querySelector(`.nav-links a[href="#${sec.id}"]`);
+    if (link) ScrollTrigger.create({ trigger: sec, start: 'top 45%', end: 'bottom 45%', toggleClass: { targets: link, className: 'active' } });
+  });
+  document.querySelectorAll('a[href^="#"]').forEach((a) => a.addEventListener('click', (e) => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (!t) return;
+    e.preventDefault();
+    gsap.to(window, { scrollTo: { y: a.getAttribute('href') === '#top' ? 0 : sectionTop(t) }, duration: reduceMotion() ? 0 : 0.8, ease: 'power3.inOut' });
+  }));
+  if (reduceMotion()) return;
+  let snapping = false, touching = false, timer = 0;
+  addEventListener('touchstart', () => (touching = true), { passive: true });
+  addEventListener('touchend', () => { touching = false; clearTimeout(timer); timer = setTimeout(settle, 220); }, { passive: true });
+  addEventListener('scroll', () => { clearTimeout(timer); if (!snapping) timer = setTimeout(settle, 220); }, { passive: true });
+  function settle() {
+    if (snapping || touching) return;
+    const y = scrollY, zone = innerHeight * 0.28;
+    let best = null;
+    for (const s of secs) {
+      const top = s.classList.contains('hero') ? 0 : sectionTop(s);
+      if (Math.abs(top - y) > 2 && Math.abs(top - y) < zone && (best === null || Math.abs(top - y) < Math.abs(best - y))) best = top;
+    }
+    if (best === null) return;
+    snapping = true;
+    gsap.to(window, { scrollTo: { y: best, autoKill: true }, duration: Math.min(0.7, 0.25 + Math.abs(best - y) / 900), ease: 'power2.inOut',
+      onComplete: () => (snapping = false), onInterrupt: () => (snapping = false) });
+  }
 }

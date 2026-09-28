@@ -6,7 +6,7 @@
   --radius: 18px;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: auto; } /* Scrollen/Einrasten steuert GSAP */
 body {
   margin: 0; color: var(--text); font-family: 'Nunito', system-ui, sans-serif; font-weight: 800;
   background: radial-gradient(ellipse at top, var(--blue-3), var(--blue-2) 40%, var(--blue-1) 100%) fixed;
@@ -347,3 +347,27 @@ select, input[type=search] {
   .info { padding: 12px; }
   .footer { margin-top: 36px; }
 }
+
+/* ---------- Brawler-Figur pro Bereich (GSAP-Scroll) ---------- */
+.section { position: relative; }
+.section > *:not(.sec-fig) { position: relative; z-index: 1; }
+.sec-fig { position: absolute; top: 34px; z-index: 0; width: 170px; pointer-events: none; will-change: transform; }
+.sec-fig.l { left: 6px; }
+.sec-fig.r { right: 6px; }
+.sec-fig img { width: 100%; height: auto; filter: drop-shadow(0 12px 0 rgba(0,0,0,.3)); }
+@media (min-width: 1500px) {           /* breite Bildschirme: groß neben dem Inhalt, passend in den freien Rand */
+  .sec-fig { --w: min(320px, calc((100vw - 1230px) / 2)); width: var(--w); top: 60px; }
+  .sec-fig.l { left: calc(-1 * var(--w) - 4px); }
+  .sec-fig.r { right: calc(-1 * var(--w) - 4px); }
+}
+@media (max-width: 900px) {
+  .sec-fig { width: 110px; top: 30px; }
+  .section > .title, .section > .sub { padding-inline: 96px; }
+}
+@media (max-width: 640px) {
+  .sec-fig { width: 78px; top: 22px; }
+  .sec-fig.l { left: 0; } .sec-fig.r { right: 0; }
+  .section > .title { padding-inline: 64px; }
+  .section > .sub { padding-inline: 0; }
+}
+.nav-links a.active { background: var(--yellow); color: var(--ink); border-color: var(--ink); }
