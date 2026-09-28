@@ -329,7 +329,7 @@ function heroIntro() {
     .from('.hero-title', { scale: 2.4, opacity: 0, duration: 0.6, ease: 'power4.in' }, '-=0.2')
     .to('.hero-title', { x: '+=6', yoyo: true, repeat: 5, duration: 0.04, ease: 'none' })
     .from('.hero-tag, .hero-chips .chip', { y: 30, opacity: 0, stagger: 0.08, duration: 0.5 }, '-=0.1')
-    .from('.hero .btn', { scale: 0, duration: 0.6, stagger: 0.12, ease: 'elastic.out(1, 0.5)' }, '-=0.2')
+    .fromTo('.hero-buttons', { scale: 0 }, { scale: 1, duration: 0.6, ease: 'elastic.out(1, 0.5)', clearProps: 'transform' }, '-=0.2')
     .from('.hero-model.m1', { x: -400, rotation: -20, opacity: 0, duration: 0.9 }, 0.3)
     .from('.hero-model.m2', { x: 400, rotation: 20, opacity: 0, duration: 0.9 }, 0.45);
   gsap.to('.hero-model.m1', { y: -18, duration: 2.2, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.3 });

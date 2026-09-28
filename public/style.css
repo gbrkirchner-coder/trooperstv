@@ -349,6 +349,9 @@ select, input[type=search] {
 }
 
 /* ---------- Brawler-Figur pro Bereich (GSAP-Scroll) ---------- */
+/* Figuren fliegen von außerhalb ein: seitlich abschneiden, sonst wird die Seite auf dem Handy breiter als das Display */
+html, body { overflow-x: clip; }
+main { overflow-x: clip; }
 .section { position: relative; }
 .section > *:not(.sec-fig) { position: relative; z-index: 1; }
 .sec-fig { position: absolute; top: 34px; z-index: 0; width: 170px; pointer-events: none; will-change: transform; }
@@ -371,3 +374,7 @@ select, input[type=search] {
   .section > .sub { padding-inline: 0; }
 }
 .nav-links a.active { background: var(--yellow); color: var(--ink); border-color: var(--ink); }
+
+@media (max-width: 640px) {          /* Club-Name inkl. Emojis in einer Zeile */
+  .hero-title { font-size: clamp(38px, 12vw, 64px); white-space: nowrap; -webkit-text-stroke-width: 4px; text-shadow: 0 6px 0 var(--ink); }
+}
