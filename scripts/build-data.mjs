@@ -167,7 +167,7 @@ async function youtubeFeed() {
   const local = path.join(OUT, 'youtube.json');
   const prev = fs.existsSync(local) ? JSON.parse(fs.readFileSync(local, 'utf8'))
     : SITE_URL ? await fetch(`${SITE_URL}/data/youtube.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null;
-  if (prev?.videos?.length) { console.warn('  ⚠ YouTube nicht erreichbar (' + errors.join('; ') + ') – letzter Stand wird verwendet'); return prev; }
+  if (prev?.videos?.length) { console.warn('  ⚠ YouTube nicht erreichbar (' + errors.join('; ') + ') – letzter Stand wird verwendet'); meldungen.push('youtube.json: ' + errors.join('; ').slice(0, 300)); return prev; }
   throw new Error(errors.join('; '));
 }
 
@@ -198,25 +198,37 @@ function write(name, data) {
   console.log(`✔ ${name} (${(fs.statSync(path.join(OUT, name)).size / 1024).toFixed(0)} KB)`);
 }
 
+/** Letzten Stand einer Datei von der Live-Seite holen (falls ein Abruf scheitert). */
+async function previous(name) {
+  if (!SITE_URL) return null;
+  return fetch(`${SITE_URL}/data/${name}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+}
+/** Teil erzeugen; bei Fehler letzten Stand verwenden und weitermachen. */
+async function part(name, fn) {
+  try { const d = await fn(); if (d) write(name, d); return d; }
+  catch (e) {
+    console.warn(`  ⚠ ${name} fehlgeschlagen: ${e.message}`);
+    meldungen.push(`${name}: ${String(e.message).replace(/key=[^&\s]+/g, 'key=…').slice(0, 300)}`);
+    const prev = await previous(name);
+    if (prev) { write(name, prev); console.warn(`    → letzter Stand von ${SITE_URL} übernommen`); return prev; }
+    fehler.push(name); return null;
+  }
+}
+const fehler = [], meldungen = [];
+
 async function main() {
   if (!API_KEY || !CLUB_TAG) throw new Error('BS_API_KEY und CLUB_TAG müssen gesetzt sein');
   fs.mkdirSync(OUT, { recursive: true });
   const started = Date.now();
-
-  const [club, brawlers, events, yt] = await Promise.all([
-    clubStats(CLUB_TAG),
-    bs('/brawlers'),
-    bs('/events/rotation'),
-    YT_CHANNEL_ID ? youtubeFeed().catch((e) => (console.warn('  ⚠ YouTube fehlgeschlagen:', e.message), null)) : null,
-  ]);
-  write('club.json', club);
-  write('brawlers.json', { items: brawlers.items.map((b) => ({ id: b.id, name: b.name })) });
-  write('events.json', events);
-  if (yt) write('youtube.json', yt);
-
-  for (const region of RANKING_REGIONS) write(`rankings-${region}.json`, await rankings(region, brawlers.items));
-
-  write('stand.json', { updatedAt: new Date().toISOString(), seconds: Math.round((Date.now() - started) / 1000) });
+  await part('club.json', () => clubStats(CLUB_TAG));
+  const brawlers = await part('brawlers.json', async () => ({ items: (await bs('/brawlers')).items.map((b) => ({ id: b.id, name: b.name })) }));
+  await part('events.json', () => bs('/events/rotation'));
+  if (YT_CHANNEL_ID) await part('youtube.json', () => youtubeFeed());
+  if (brawlers) for (const region of RANKING_REGIONS) await part(`rankings-${region}.json`, () => rankings(region, brawlers.items));
+  write('stand.json', { updatedAt: new Date().toISOString(), seconds: Math.round((Date.now() - started) / 1000), fehler, meldungen, youtubeKey: Boolean(YT_API_KEY) });
+  // Nur abbrechen, wenn die Club-Daten komplett fehlen (dann wäre die Seite leer)
+  if (fehler.includes('club.json')) throw new Error('Club-Daten fehlen: ' + fehler.join(', '));
+  if (fehler.length) console.warn('⚠ Ohne Daten: ' + fehler.join(', '));
 }
 
 main().catch((e) => { console.error('❌', e.message); process.exit(1); });
