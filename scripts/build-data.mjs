@@ -111,8 +111,25 @@ async function clubStats(tag) {
     if (!cur || b.trophies > cur.trophies) topBrawlers[b.id] = { ...b, owner: m.name, ownerTag: m.tag };
   }
 
+  // Brawler-Sammlung des Clubs: wie viele Mitglieder besitzen welchen Brawler, auf welcher Stufe
+  const coll = {};
+  for (const m of enriched) for (const b of m.brawlers) {
+    const c = coll[b.id] ||= { id: b.id, name: b.name, owners: 0, p11: 0, maxTrophies: 0, sumTrophies: 0 };
+    c.owners++; if (b.power >= 11) c.p11++; c.maxTrophies = Math.max(c.maxTrophies, b.trophies); c.sumTrophies += b.trophies;
+  }
+  const brawlerStats = Object.values(coll).map(({ sumTrophies, ...c }) => ({ ...c, avgTrophies: Math.round(sumTrophies / c.owners) }))
+    .sort((a, b) => b.owners - a.owners || b.maxTrophies - a.maxTrophies);
+  const totals = {
+    trio: enriched.reduce((s, m) => s + (m.trioVictories || 0), 0),
+    solo: enriched.reduce((s, m) => s + (m.soloVictories || 0), 0),
+    duo: enriched.reduce((s, m) => s + (m.duoVictories || 0), 0),
+    highest: enriched.reduce((s, m) => Math.max(s, m.highestTrophies || 0), 0),
+    brawlers: enriched.reduce((s, m) => s + (m.brawlerCount || 0), 0),
+  };
+
   return {
     club: { ...club, members: undefined },
+    brawlerStats, totals,
     members: enriched.map(({ brawlers, ...rest }) => rest),
     usage: Object.values(usage).sort((a, b) => b.picks - a.picks),
     topBrawlers: Object.values(topBrawlers).sort((a, b) => b.trophies - a.trophies).slice(0, 30),
@@ -193,6 +210,53 @@ async function rankings(region, brawlers) {
   return out;
 }
 
+// Top-Clubs und Top-Spieler (Deutschland + weltweit), dazu die Platzierung unseres Clubs in Deutschland
+async function tops() {
+  const slim = (p) => ({ tag: p.tag, name: p.name, nameColor: p.nameColor, icon: p.icon, badgeId: p.badgeId, trophies: p.trophies, rank: p.rank,
+    memberCount: p.memberCount, club: p.club ? { name: p.club.name } : undefined });
+  const [deClubs, glClubs, dePlayers, glPlayers] = await Promise.all([
+    bs('/rankings/de/clubs?limit=200'), bs('/rankings/global/clubs?limit=20'),
+    bs('/rankings/de/players?limit=20'), bs('/rankings/global/players?limit=20'),
+  ]);
+  const own = (deClubs.items || []).find((c) => c.tag === '#' + CLUB_TAG.replace(/^#/, '').toUpperCase());
+  return {
+    updatedAt: new Date().toISOString(),
+    clubRankDE: own ? own.rank : null,
+    clubs: { de: (deClubs.items || []).slice(0, 20).map(slim), global: (glClubs.items || []).map(slim) },
+    players: { de: (dePlayers.items || []).map(slim), global: (glPlayers.items || []).map(slim) },
+  };
+}
+
+// Echte News: Artikel der offiziellen Supercell-Seite + neueste Videos des offiziellen Brawl-Stars-Kanals (Brawl Talk = anstehende Updates)
+const BS_OFFICIAL_UPLOADS = 'UUooVYzDxdwTtGYAkcPmOgOw';
+async function blog(locale) {
+  const res = await fetch(`https://supercell.com/${locale}/games/brawlstars/blog/`, { headers: { 'User-Agent': 'Mozilla/5.0 (troopers.tv news)' } });
+  if (!res.ok) throw new Error(`Blog ${locale} ${res.status}`);
+  const html = await res.text();
+  const m = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!m) throw new Error('Blog: keine Daten');
+  const arts = JSON.parse(m[1])?.props?.pageProps?.articles || [];
+  return arts.map((a) => ({
+    title: a.title, date: a.publishDate, image: a.thumbnail?.imgUrl || null, category: a.category || 'Brawl Stars',
+    url: a.linkUrl?.startsWith('http') ? a.linkUrl : 'https://supercell.com' + a.linkUrl,
+  })).filter((a) => a.title && a.url);
+}
+async function news() {
+  const out = { updatedAt: new Date().toISOString(), articles: [], videos: [] };
+  const errs = [];
+  for (const loc of ['de', 'en']) { try { out.articles = await blog(loc); if (out.articles.length) { out.locale = loc; break; } } catch (e) { errs.push(e.message); } }
+  if (!out.articles.length) meldungen.push('news: ' + errs.join('; '));
+  if (YT_API_KEY) {
+    const r = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=15&playlistId=${BS_OFFICIAL_UPLOADS}&key=${YT_API_KEY}`);
+    const j = await r.json();
+    if (!r.ok) throw new Error('YouTube offiziell: ' + (j.error?.message || r.status));
+    out.videos = (j.items || []).map((i) => ({ id: i.snippet.resourceId?.videoId, title: i.snippet.title, date: i.snippet.publishedAt,
+      brawlTalk: /brawl\s*talk/i.test(i.snippet.title) })).filter((v) => v.id);
+  }
+  if (!out.articles.length && !out.videos.length) throw new Error('keine News gefunden');
+  return out;
+}
+
 function write(name, data) {
   fs.writeFileSync(path.join(OUT, name), JSON.stringify(data));
   console.log(`✔ ${name} (${(fs.statSync(path.join(OUT, name)).size / 1024).toFixed(0)} KB)`);
@@ -221,7 +285,10 @@ async function main() {
   fs.mkdirSync(OUT, { recursive: true });
   const started = Date.now();
   await part('club.json', () => clubStats(CLUB_TAG));
-  const brawlers = await part('brawlers.json', async () => ({ items: (await bs('/brawlers')).items.map((b) => ({ id: b.id, name: b.name })) }));
+  const brawlers = await part('brawlers.json', async () => ({ items: (await bs('/brawlers')).items.map((b) => ({
+    id: b.id, name: b.name, gadgets: (b.gadgets || []).map((g) => g.name), starPowers: (b.starPowers || []).map((g) => g.name) })) }));
+  await part('tops.json', () => tops());
+  await part('news.json', () => news());
   await part('events.json', () => bs('/events/rotation'));
   if (YT_CHANNEL_ID) await part('youtube.json', () => youtubeFeed());
   if (brawlers) for (const region of RANKING_REGIONS) await part(`rankings-${region}.json`, () => rankings(region, brawlers.items));

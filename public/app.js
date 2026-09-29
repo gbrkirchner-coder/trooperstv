@@ -1,4 +1,4 @@
-gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+gsap.registerPlugin(ScrollTrigger);
 
 const CDN = 'https://cdn.brawlify.com';
 const img = {
@@ -21,7 +21,8 @@ const fmt = (n) => Number(n || 0).toLocaleString('de-DE');
 const color = (c) => (c ? '#' + c.slice(-6) : '#fff');
 const cap = (s) => String(s || '').toLowerCase().replace(/(^|[\s-])\S/g, (m) => m.toUpperCase());
 const trophy = '<i class="ico-trophy"></i>';
-const fallback = (el, id) => { el.onerror = null; el.src = img.portrait(id); };
+// Bild fehlt (z. B. ganz neuer Brawler): erst Porträt, dann Platzhalter-Icon
+const fallback = (el, id) => { el.onerror = () => { el.onerror = null; el.src = 'maskottchen.png'; el.style.opacity = '.5'; }; el.src = img.portrait(id); };
 window.fallback = fallback;
 
 async function api(path) {
@@ -50,7 +51,7 @@ const state = { data: null, demo: false, category: 'trophies' };
   renderRanking(false);
   renderTopBrawlers();
   renderMembers();
-  await Promise.all([renderEvents(), setupGlobal(), renderTV()]);
+  await Promise.all([renderEvents(), setupGlobal(), renderTV(), renderNews(), renderTops(), renderLexikon()]);
   scrollAnimations();
 })();
 
@@ -263,23 +264,22 @@ async function renderTV() {
   const videos = (data?.videos || []).filter((v) => !v.short);
   const shorts = (data?.videos || []).filter((v) => v.short);
   const date = (d) => new Date(d).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
-  const clean = (t) => t.replace(/\s*\|\s*Brawl Stars.*$/i, '');
+  const clean = (t) => t.replace(/\s*\|\s*Brawl Stars.*$/i, '').replace(/#\S+/g, '').trim();
+  const embed = (id, title) => `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
 
   if (!videos.length) {
     $('#tvPlayer').outerHTML = '<p class="tv-empty">Noch keine Videos – bald geht’s los! 🎬</p>';
-    $('#tvList').innerHTML = '';
+    $('#tvList').remove();
   } else {
     // Vorschau erst beim Klick durch den (datensparsamen) YouTube-Player ersetzen
     const show = (v, autoplay) => {
       const p = $('#tvPlayer');
-      p.innerHTML = autoplay
-        ? `<iframe src="https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&rel=0" title="${esc(v.title)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`
+      p.innerHTML = autoplay ? embed(v.id, v.title)
         : `<img src="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg" alt=""><span class="tv-play"></span><div class="tv-caption">${esc(clean(v.title))}</div>`;
       p.onclick = autoplay ? null : () => show(v, true);
       document.querySelectorAll('.tv-list li').forEach((li) => li.classList.toggle('active', li.dataset.id === v.id));
-      if (!autoplay) gsap.from('#tvPlayer img', { scale: 1.08, duration: 0.5, ease: 'power2.out' });
     };
-    $('#tvList').innerHTML = videos.slice(0, 5).map((v) => `
+    $('#tvList').innerHTML = videos.map((v) => `
       <li data-id="${v.id}"><img src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="" loading="lazy">
         <span>${esc(clean(v.title))}<small>${date(v.published)}${v.views != null ? ` · ${fmt(v.views)} Aufrufe` : ''}</small></span></li>`).join('');
     $('#tvList').addEventListener('click', (e) => {
@@ -288,13 +288,100 @@ async function renderTV() {
     });
     show(videos[0], false);
   }
+  // Shorts: Handy-Rahmen, vertikal wischen wie in der YouTube-App; Tippen spielt den Short im Rahmen ab
   if (shorts.length) {
     $('#tvShortsWrap').hidden = false;
-    $('#tvShorts').innerHTML = shorts.slice(0, 8).map((v) => `
-      <a class="tv-short" href="https://www.youtube.com/shorts/${v.id}" target="_blank" rel="noopener">
-        <img src="https://i.ytimg.com/vi/${v.id}/hq720.jpg" onerror="this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'" alt="" loading="lazy">
-        <span>${esc(v.title.replace(/#\S+/g, '').trim())}</span></a>`).join('');
+    const feed = $('#tvShorts');
+    feed.innerHTML = shorts.map((v) => `
+      <div class="short-card" data-id="${v.id}">
+        <img src="https://i.ytimg.com/vi/${v.id}/oar2.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'" alt="" loading="lazy">
+        <span class="tv-play small"></span>
+        <div class="short-meta"><b>${esc(clean(v.title))}</b><small>${date(v.published)}${v.views != null ? ` · ${fmt(v.views)} Aufrufe` : ''}</small></div>
+      </div>`).join('');
+    feed.addEventListener('click', (e) => {
+      const c = e.target.closest('.short-card'); if (!c || c.querySelector('iframe')) return;
+      feed.querySelectorAll('.short-card iframe').forEach((f) => { const card = f.closest('.short-card'); f.remove(); card.classList.remove('playing'); });
+      c.insertAdjacentHTML('beforeend', embed(c.dataset.id, ''));
+      c.classList.add('playing');
+    });
   }
+}
+
+// ---------- News ----------
+async function renderNews() {
+  let n;
+  try { n = await api('data/news.json'); } catch { $('#news').hidden = true; return; }
+  const date = (d) => new Date(d).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' });
+  const vids = n.videos || [];
+  const feat = vids.find((v) => v.brawlTalk) || vids[0];
+  const f = $('#newsFeature');
+  if (feat) {
+    f.href = `https://www.youtube.com/watch?v=${feat.id}`;
+    f.innerHTML = `<img src="https://i.ytimg.com/vi/${feat.id}/hqdefault.jpg" alt="" loading="lazy"><span class="tv-play small"></span>
+      <div class="news-feature-text"><span class="tag">${feat.brawlTalk ? 'BRAWL TALK · UPDATE' : 'NEU'}</span><b>${esc(feat.title)}</b><small>${date(feat.date)}</small></div>`;
+  } else f.remove();
+  $('#newsVideos').innerHTML = vids.filter((v) => v !== feat).slice(0, 8).map((v) => `
+    <li><a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">
+      <img src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="" loading="lazy"><span>${esc(v.title)}<small>${date(v.date)}${v.brawlTalk ? ' · Brawl Talk' : ''}</small></span></a></li>`).join('');
+  $('#newsArticles').innerHTML = (n.articles || []).slice(0, 8).map((a) => `
+    <a class="news-article" href="${esc(a.url)}" target="_blank" rel="noopener">
+      ${a.image ? `<img src="${esc(a.image)}" alt="" loading="lazy">` : ''}
+      <div><small>${date(a.date)}</small><b>${esc(a.title)}</b></div></a>`).join('') || '<p class="muted">Keine Artikel gefunden.</p>';
+}
+
+// ---------- Ranglisten (Clubs/Spieler DE + Welt) ----------
+async function renderTops() {
+  let t;
+  try { t = await api('data/tops.json'); } catch { $('#ranglisten').hidden = true; return; }
+  $('#clubRankLine').innerHTML = t.clubRankDE
+    ? `TROOPERS steht in Deutschland auf <b>Platz ${t.clubRankDE}</b>.`
+    : 'TROOPERS ist noch nicht in den deutschen Top 200 – gemeinsam pushen! 💪';
+  const draw = (key) => {
+    const [kind, region] = key.split('.');
+    const list = t[kind]?.[region] || [];
+    $('#topList').innerHTML = list.map((p) => `
+      <li><span class="n">${p.rank}</span>
+        <img src="${kind === 'clubs' ? img.badge(p.badgeId) : img.icon(p.icon?.id)}" alt="" loading="lazy">
+        <span class="nm"><span style="color:${color(p.nameColor)}">${esc(p.name)}</span>
+          <small>${kind === 'clubs' ? `${p.memberCount ?? '–'}/30 Mitglieder` : esc(p.club?.name || 'Kein Club')}</small></span>
+        <span class="t">${trophy}${fmt(p.trophies)}</span></li>`).join('') || '<li class="muted">Keine Daten.</li>';
+    collapsible('#topList', '#topMore', isMobile() ? 5 : 10, 'Plätze');
+  };
+  $('#topTabs').addEventListener('click', (e) => {
+    const b = e.target.closest('.tab'); if (!b) return;
+    $('#topTabs').querySelectorAll('.tab').forEach((x) => x.classList.toggle('active', x === b));
+    draw(b.dataset.k);
+  });
+  draw('clubs.de');
+}
+
+// ---------- Brawler-Sammlung des Clubs ----------
+async function renderLexikon() {
+  const stats = state.data.brawlerStats || [];
+  let all = [];
+  try { all = (await api('data/brawlers.json')).items || []; } catch {}
+  if (!stats.length && !all.length) { $('#lexikon').hidden = true; return; }
+  const n = state.data.members.length || 1, tot = state.data.totals || {};
+  const gadgets = all.reduce((s, b) => s + (b.gadgets?.length || 0), 0), sps = all.reduce((s, b) => s + (b.starPowers?.length || 0), 0);
+  $('#lexStats').innerHTML = [
+    ['Brawler im Spiel', all.length || '–'], ['Gadgets', gadgets || '–'], ['Star Powers', sps || '–'],
+    ['Brawler im Club', fmt(tot.brawlers)], ['3v3-Siege Club', fmt(tot.trio)], ['Showdown-Siege', fmt((tot.solo || 0) + (tot.duo || 0))],
+  ].map(([k, v]) => `<div><small>${k}</small><b>${v}</b></div>`).join('');
+  const byId = Object.fromEntries(stats.map((s) => [s.id, s]));
+  const rows = (all.length ? all : stats).map((b) => ({ ...b, ...(byId[b.id] || { owners: 0, p11: 0, maxTrophies: 0 }) }))
+    .sort((a, b) => b.owners - a.owners || b.maxTrophies - a.maxTrophies);
+  $('#lexGrid').innerHTML = rows.map((b) => `
+    <div class="lex-cell ${b.owners ? '' : 'none'}" title="${esc(cap(b.name))}: ${b.owners}/${n} besitzen ihn, ${b.p11} auf Stufe 11, bester ${fmt(b.maxTrophies)} Trophäen">
+      <img src="${img.portrait(b.id)}" onerror="this.onerror=null;this.src='maskottchen.png';this.style.opacity='.5'" alt="" loading="lazy"><span class="nm">${esc(cap(b.name))}</span>
+      <span class="own"><i style="width:${Math.round((b.owners / n) * 100)}%"></i></span><small>${b.owners}/${n} · ${b.p11}× P11</small></div>`).join('');
+  collapsible('#lexGrid', '#lexMore', isMobile() ? 12 : 24, 'Brawler');
+  const newest = all.slice().sort((a, b) => b.id - a.id).slice(0, 3);
+  $('#lexNew').innerHTML = newest.map((b) => `
+    <article><img src="${img.model(b.id)}" onerror="fallback(this, ${b.id})" alt="" loading="lazy">
+      <div><b>${esc(cap(b.name))}</b>
+        <small>Gadgets: ${esc((b.gadgets || []).map(cap).join(', ') || '–')}</small>
+        <small>Star Powers: ${esc((b.starPowers || []).map(cap).join(', ') || '–')}</small>
+        <small>Im Club: ${byId[b.id]?.owners || 0} von ${n}</small></div></article>`).join('');
 }
 
 // ---------- Events ----------
@@ -306,7 +393,7 @@ async function renderEvents() {
       <div class="event-head"><h4>${esc(MODE[e.mode] || cap(e.mode))}</h4><small>${esc(e.map || '')}${endTime ? ' · endet ' + parseTime(endTime) : ''}</small></div>
       <img src="${img.map(e.id)}" alt="${esc(e.map || '')}" loading="lazy" onerror="this.style.display='none'">
     </article>`).join('');
-  collapsible('#eventGrid', '#eventMore', isMobile() ? 4 : 12, 'Events');
+  collapsible('#eventGrid', '#eventMore', isMobile() ? 4 : 8, 'Maps');
 }
 function parseTime(t) {
   const m = t.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/);
@@ -364,7 +451,7 @@ function scrollAnimations() {
       onEnter: (els) => gsap.to(els, { opacity: 1, y: 0, scale: 1, duration: 0.55, stagger: 0.06, ease: 'back.out(1.7)', ...vars }),
     });
   };
-  ['.stat', '.join-box', '.meta-card', '.brawler', '.member', '.event', '.info', '.panel', '.rank-list li', '.tv-player', '.tv-list li', '.tv-short'].forEach((s) => pop(s));
+  ['.stat', '.join-box', '.meta-card', '.brawler', '.member', '.event', '.info', '.panel', '.news-feature', '.news-article', '.lex-new article'].forEach((s) => pop(s));
   gsap.set('.podium-step', { y: 140, opacity: 0 });
   ScrollTrigger.create({ trigger: '#podium', start: 'top 85%', once: true,
     onEnter: () => gsap.to('.podium-step', { y: 0, opacity: 1, duration: 0.7, stagger: { each: 0.12, from: 'center' }, ease: 'back.out(1.6)' }) });
@@ -378,67 +465,14 @@ function scrollAnimations() {
     c.addEventListener('mouseenter', () => gsap.to(im, { scale: 1.12, rotation: -4, duration: 0.3, ease: 'back.out(3)' }));
     c.addEventListener('mouseleave', () => gsap.to(im, { scale: 1, rotation: 0, duration: 0.3 }));
   });
-  sectionFigures();
-  sectionSnap();
+  navActive();
   ScrollTrigger.refresh();
 }
 
-const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-const navH = () => document.querySelector('.nav')?.offsetHeight || 0;
-const sectionTop = (el) => el.getBoundingClientRect().top + scrollY - navH();
-
-// Pro Bereich eine Brawler-Figur: fliegt beim Hereinscrollen von der Seite ein, schwebt, dreht sich mit dem Scrollen und fliegt wieder hinaus
-function sectionFigures() {
-  document.querySelectorAll('.sec-fig').forEach((wrap) => {
-    const im = wrap.querySelector('img');
-    im.src = img.model(im.dataset.id);
-    im.onerror = () => (wrap.style.display = 'none');
-    if (reduceMotion()) return;
-    const dir = wrap.classList.contains('l') ? -1 : 1;
-    const sec = wrap.closest('.section');
-    const tl = gsap.timeline({ scrollTrigger: { trigger: sec, start: 'top 90%', end: 'bottom 10%', scrub: 0.8 } });
-    tl.fromTo(wrap, { xPercent: dir * 140, rotation: dir * 35, scale: 0.4, opacity: 0 },
-                    { xPercent: 0, rotation: dir * -6, scale: 1, opacity: 1, ease: 'back.out(1.6)', duration: 0.25 })
-      .to(wrap, { yPercent: -35, rotation: dir * 6, ease: 'none', duration: 0.55 })
-      .to(wrap, { xPercent: dir * 120, rotation: dir * 30, scale: 0.6, opacity: 0, ease: 'power2.in', duration: 0.2 });
-    gsap.to(im, { y: -12, rotation: dir * -3, duration: 1.6 + Math.random() * 0.6, repeat: -1, yoyo: true, ease: 'sine.inOut' });
-    // kleiner Hüpfer, sobald der Bereich einrastet
-    ScrollTrigger.create({ trigger: sec, start: 'top 55%', onEnter: () => gsap.fromTo(im, { scale: 1 }, { scale: 1.15, duration: 0.18, yoyo: true, repeat: 1, ease: 'power2.out' }) });
-  });
-}
-
-// Einrasten: Nach dem Scrollen gleitet die Seite an den Anfang des nächstgelegenen Bereichs –
-// aber nur, wenn er nah ist. Mitten in langen Bereichen (z. B. Mitglieder) bleibt die Seite, wo sie ist.
-function sectionSnap() {
-  const secs = gsap.utils.toArray('.hero, main .section');
-  // Menü: aktiven Bereich markieren, Klicks weich scrollen
-  secs.forEach((sec) => {
-    if (!sec.id) return;
+// Menü: aktuellen Bereich markieren
+function navActive() {
+  document.querySelectorAll('main .section[id]').forEach((sec) => {
     const link = document.querySelector(`.nav-links a[href="#${sec.id}"]`);
     if (link) ScrollTrigger.create({ trigger: sec, start: 'top 45%', end: 'bottom 45%', toggleClass: { targets: link, className: 'active' } });
   });
-  document.querySelectorAll('a[href^="#"]').forEach((a) => a.addEventListener('click', (e) => {
-    const t = document.querySelector(a.getAttribute('href'));
-    if (!t) return;
-    e.preventDefault();
-    gsap.to(window, { scrollTo: { y: a.getAttribute('href') === '#top' ? 0 : sectionTop(t) }, duration: reduceMotion() ? 0 : 0.8, ease: 'power3.inOut' });
-  }));
-  if (reduceMotion()) return;
-  let snapping = false, touching = false, timer = 0;
-  addEventListener('touchstart', () => (touching = true), { passive: true });
-  addEventListener('touchend', () => { touching = false; clearTimeout(timer); timer = setTimeout(settle, 220); }, { passive: true });
-  addEventListener('scroll', () => { clearTimeout(timer); if (!snapping) timer = setTimeout(settle, 220); }, { passive: true });
-  function settle() {
-    if (snapping || touching) return;
-    const y = scrollY, zone = innerHeight * 0.28;
-    let best = null;
-    for (const s of secs) {
-      const top = s.classList.contains('hero') ? 0 : sectionTop(s);
-      if (Math.abs(top - y) > 2 && Math.abs(top - y) < zone && (best === null || Math.abs(top - y) < Math.abs(best - y))) best = top;
-    }
-    if (best === null) return;
-    snapping = true;
-    gsap.to(window, { scrollTo: { y: best, autoKill: true }, duration: Math.min(0.7, 0.25 + Math.abs(best - y) / 900), ease: 'power2.inOut',
-      onComplete: () => (snapping = false), onInterrupt: () => (snapping = false) });
-  }
 }

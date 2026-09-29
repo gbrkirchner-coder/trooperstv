@@ -348,33 +348,265 @@ select, input[type=search] {
   .footer { margin-top: 36px; }
 }
 
-/* ---------- Brawler-Figur pro Bereich (GSAP-Scroll) ---------- */
-/* Figuren fliegen von außerhalb ein: seitlich abschneiden, sonst wird die Seite auf dem Handy breiter als das Display */
 html, body { overflow-x: clip; }
-main { overflow-x: clip; }
-.section { position: relative; }
-.section > *:not(.sec-fig) { position: relative; z-index: 1; }
-.sec-fig { position: absolute; top: 34px; z-index: 0; width: 170px; pointer-events: none; will-change: transform; }
-.sec-fig.l { left: 6px; }
-.sec-fig.r { right: 6px; }
-.sec-fig img { width: 100%; height: auto; filter: drop-shadow(0 12px 0 rgba(0,0,0,.3)); }
-@media (min-width: 1500px) {           /* breite Bildschirme: groß neben dem Inhalt, passend in den freien Rand */
-  .sec-fig { --w: min(320px, calc((100vw - 1230px) / 2)); width: var(--w); top: 60px; }
-  .sec-fig.l { left: calc(-1 * var(--w) - 4px); }
-  .sec-fig.r { right: calc(-1 * var(--w) - 4px); }
-}
-@media (max-width: 900px) {
-  .sec-fig { width: 110px; top: 30px; }
-  .section > .title, .section > .sub { padding-inline: 96px; }
-}
-@media (max-width: 640px) {
-  .sec-fig { width: 78px; top: 22px; }
-  .sec-fig.l { left: 0; } .sec-fig.r { right: 0; }
-  .section > .title { padding-inline: 64px; }
-  .section > .sub { padding-inline: 0; }
-}
+html { scroll-behavior: smooth; }
 .nav-links a.active { background: var(--yellow); color: var(--ink); border-color: var(--ink); }
 
-@media (max-width: 640px) {          /* Club-Name inkl. Emojis in einer Zeile */
-  .hero-title { font-size: clamp(38px, 12vw, 64px); white-space: nowrap; -webkit-text-stroke-width: 4px; text-shadow: 0 6px 0 var(--ink); }
+/* =====================================================================
+   KOMPAKT (Desktop + Handy): kleinere Schrift, Buttons, Karten, Abstände
+   ===================================================================== */
+body { font-size: 14px; }
+.title, .hero-title, .nav-logo, .btn, .stat b, .chip, h3, h4, .tab, .podium-name, .brawler-name, .meta-name { -webkit-text-stroke-width: 1.5px; text-shadow: 0 2px 0 var(--ink); }
+.nav { padding: 6px 16px; border-bottom-width: 3px; box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.nav-logo { font-size: 20px; } .nav-logo img { width: 32px; height: 32px; }
+.nav-links a { font-size: 12px; padding: 4px 9px; border-radius: 8px; }
+
+.hero { min-height: 0; padding: 30px 16px 36px; }
+.hero-badge { width: 110px; height: 110px; }
+.hero-kicker { font-size: 12px; letter-spacing: 3px; }
+.hero-title { font-size: clamp(40px, 7vw, 88px); -webkit-text-stroke-width: 4px; text-shadow: 0 5px 0 var(--ink); white-space: nowrap; }
+.hero-tag { font-size: 14px; margin: 2px 0 12px; }
+.hero-chips { gap: 8px; margin-bottom: 16px; }
+.chip { font-size: 14px; padding: 5px 11px; border-width: 2px; border-radius: 10px; box-shadow: 0 3px 0 var(--ink); }
+.ico-trophy { width: 15px; height: 15px; }
+.hero-model { height: min(30vh, 240px); }
+.btn { font-size: 16px; padding: 8px 20px; border-width: 3px; border-radius: 12px; box-shadow: 0 4px 0 var(--ink), inset 0 -5px 0 rgba(0,0,0,.18), inset 0 4px 0 rgba(255,255,255,.35); }
+.btn-red { font-size: 15px; }
+
+.section { padding: 34px 16px 6px; scroll-margin-top: 50px; }
+.title { font-size: clamp(22px, 3vw, 30px); margin-bottom: 4px; transform: rotate(-1deg); }
+.title.small { font-size: 22px; }
+.sub, .desc { font-size: 13px; margin-bottom: 16px; }
+.desc { font-size: 14px; }
+.mini-title { font-size: 17px; margin: 18px 0 8px; }
+.mini-title small { font-family: 'Nunito', sans-serif; font-size: 12px; -webkit-text-stroke: 0; text-shadow: none; color: #cfe3ff; }
+.panel, .stat, .meta-card, .member, .brawler, .event, .info, .rank-list li, .podium-step {
+  border-width: 3px; border-radius: 12px; box-shadow: 0 4px 0 var(--ink), inset 0 2px 0 rgba(255,255,255,.18);
+}
+.stats { grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 10px; }
+.stat { padding: 9px 8px; }
+.stat b { font-size: 22px; }
+.stat-label { font-size: 10px; }
+.roles { margin-top: 12px; gap: 6px; }
+.role { font-size: 10px; padding: 2px 7px; border-width: 1.5px; border-radius: 6px; }
+.join-box { margin-top: 16px; padding: 12px 16px; border-width: 3px; border-radius: 12px; box-shadow: 0 4px 0 var(--ink); gap: 12px; }
+.join-box h3 { font-size: 19px; }
+.join-box p { font-size: 13px; font-weight: 700; }
+
+.meta-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.meta-card { padding: 8px 10px; gap: 10px; }
+.meta-card:first-child { grid-column: auto; }
+.meta-card img, .meta-card:first-child img { width: 48px; height: 48px; }
+.meta-card .pos { font-size: 18px; }
+.meta-name { font-size: 15px; }
+.bar { height: 9px; border-width: 1.5px; margin: 4px 0 2px; }
+.meta-card small { font-size: 11px; }
+
+.tabs { gap: 5px; margin-bottom: 18px; }
+.tab { font-size: 12px; padding: 4px 9px; border-width: 2px; border-radius: 8px; box-shadow: 0 3px 0 var(--ink); }
+.podium { max-width: 520px; gap: 10px; margin-bottom: 14px; }
+.podium-step { padding: 38px 6px 10px; }
+.podium-step img { width: 54px; height: 54px; top: -28px; border-width: 3px; border-radius: 12px; }
+.podium-step.p1 { min-height: 140px; } .podium-step.p2 { min-height: 118px; } .podium-step.p3 { min-height: 100px; }
+.podium-rank { font-size: 28px; }
+.podium-name { font-size: 13px; }
+.podium-val { font-size: 15px; }
+.rank-list { max-width: 620px; gap: 6px; }
+.rank-list li { grid-template-columns: 26px 28px 1fr auto; gap: 8px; padding: 5px 10px; font-size: 13px; box-shadow: 0 3px 0 var(--ink); }
+.rank-list .n { font-size: 16px; } .rank-list img { width: 28px; height: 28px; } .rank-list .v { font-size: 15px; }
+
+.brawler-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.brawler { padding: 8px 6px 9px; }
+.brawler img { height: 72px; }
+.brawler-name { font-size: 13px; margin-top: 3px; }
+.brawler .tro { font-size: 13px; -webkit-text-stroke-width: 1px; }
+.brawler .owner { font-size: 10px; }
+.panel { padding: 12px; }
+.panel-head h3 { font-size: 17px; }
+select, input[type=search] { font-size: 13px; padding: 6px 9px; border-width: 2px; border-radius: 9px; box-shadow: 0 3px 0 var(--ink); }
+.global-list { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; }
+.global-list li { padding: 5px 8px; font-size: 12px; gap: 8px; }
+.global-list img { width: 26px; height: 26px; }
+
+.toolbar { margin-bottom: 12px; gap: 8px; }
+.toolbar input { min-width: 200px; }
+.member-grid { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 8px; }
+.member { grid-template-columns: 40px 1fr; gap: 8px; padding: 7px 9px; }
+.member > img { width: 40px; height: 40px; border-width: 2px; border-radius: 8px; }
+.member .name { font-size: 15px; -webkit-text-stroke-width: 1px; }
+.member .line { font-size: 11px; gap: 6px; margin-top: 1px; }
+.member .tro { font-size: 13px; }
+.member .best { padding: 4px 6px; font-size: 11px; gap: 8px; border-radius: 8px; }
+.member .best img { width: 28px; height: 28px; }
+
+.event-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.event-head { padding: 5px 8px; border-bottom-width: 3px; }
+.event-head h4 { font-size: 13px; }
+.event-head small { font-size: 10px; }
+.event img { height: 96px; }
+.info-cards { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.info { padding: 10px 12px; }
+.info h4 { font-size: 15px; margin-bottom: 4px; }
+.info p { font-size: 12px; }
+.more-btn { font-size: 13px; padding: 5px 13px; margin-top: 10px; border-width: 2px; border-radius: 9px; box-shadow: 0 3px 0 var(--ink); }
+.footer { margin-top: 30px; padding: 16px; font-size: 11px; }
+.muted { font-size: 12px; }
+
+/* ---------- News ---------- */
+.news-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; align-items: start; }
+.news-feature { position: relative; display: block; aspect-ratio: 16/9; overflow: hidden; color: #fff; text-decoration: none;
+  border: 3px solid var(--ink); border-radius: 12px; box-shadow: 0 4px 0 var(--ink); background: #000; }
+.news-feature img { width: 100%; height: 100%; object-fit: cover; }
+.news-feature-text { position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 12px 10px; background: linear-gradient(transparent, rgba(0,0,0,.85)); display: grid; gap: 2px; }
+.news-feature-text b { font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: 18px; line-height: 1.15; }
+.news-feature-text small { font-size: 11px; opacity: .8; }
+.tag { justify-self: start; font-size: 10px; padding: 2px 7px; border-radius: 6px; background: var(--red); border: 1.5px solid var(--ink); letter-spacing: .5px; }
+.news-side .mini-title { margin-top: 0; }
+.news-videos { list-style: none; margin: 0; padding: 0 4px 0 0; display: grid; gap: 6px; max-height: 300px; overflow-y: auto; }
+.news-videos a { display: grid; grid-template-columns: 96px 1fr; gap: 8px; align-items: center; text-decoration: none; color: #fff; font-size: 12px; line-height: 1.25;
+  background: linear-gradient(var(--card-2), var(--card)); border: 2px solid var(--ink); border-radius: 9px; overflow: hidden; }
+.news-videos img { width: 96px; aspect-ratio: 16/9; object-fit: cover; }
+.news-videos small, .news-article small { display: block; opacity: .75; font-size: 10px; margin-top: 2px; }
+.news-articles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.news-article { display: block; text-decoration: none; color: #fff; overflow: hidden; background: linear-gradient(var(--card-2), var(--card));
+  border: 3px solid var(--ink); border-radius: 12px; box-shadow: 0 4px 0 var(--ink); }
+.news-article img { width: 100%; aspect-ratio: 800/433; object-fit: cover; border-bottom: 3px solid var(--ink); }
+.news-article div { padding: 7px 9px 9px; }
+.news-article b { display: block; font-size: 13px; line-height: 1.25; }
+.news-article:hover, .news-feature:hover, .news-videos a:hover { transform: translateY(-2px); }
+.tv-play.small { width: 58px; height: 42px; border-width: 3px; border-radius: 11px; }
+.tv-play.small::after { left: 20px; top: 9px; border-left-width: 20px; border-top-width: 11px; border-bottom-width: 11px; }
+
+/* ---------- Ranglisten ---------- */
+.tabs.small { margin-bottom: 12px; }
+.top-list { list-style: none; margin: 0 auto; padding: 0; max-width: 760px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px; }
+.top-list li { display: grid; grid-template-columns: 26px 30px 1fr auto; gap: 8px; align-items: center; padding: 5px 9px; font-size: 13px;
+  background: linear-gradient(var(--card-2), var(--card)); border: 2px solid var(--ink); border-radius: 9px; }
+.top-list .n { font-family: 'Lilita One'; color: var(--yellow); font-size: 15px; }
+.top-list img { width: 30px; height: 30px; object-fit: contain; }
+.top-list .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-list .nm small { display: block; font-size: 10px; color: #bcd; }
+.top-list .t { font-family: 'Lilita One'; display: inline-flex; gap: 4px; align-items: center; }
+
+/* ---------- Brawler-Sammlung ---------- */
+.lex-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.lex-stats div { text-align: center; padding: 6px; background: rgba(0,0,0,.22); border: 2px solid var(--ink); border-radius: 9px; }
+.lex-stats small { display: block; font-size: 10px; color: #cfe3ff; text-transform: uppercase; }
+.lex-stats b { font-family: 'Lilita One'; font-weight: 400; font-size: 18px; }
+.lex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 6px; }
+.lex-cell { text-align: center; padding: 5px 4px 6px; background: linear-gradient(var(--card-2), var(--card)); border: 2px solid var(--ink); border-radius: 9px; font-size: 10px; }
+.lex-cell.none { opacity: .45; filter: grayscale(.8); }
+.lex-cell img { width: 40px; height: 40px; margin: 0 auto 2px; border-radius: 7px; }
+.lex-cell .nm { display: block; font-weight: 900; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lex-cell .own { display: block; height: 5px; margin: 3px 2px; background: rgba(0,0,0,.4); border-radius: 3px; overflow: hidden; }
+.lex-cell .own i { display: block; height: 100%; background: linear-gradient(90deg, #8cff7a, #2fbf3a); }
+.lex-cell small { color: #cfe3ff; font-size: 9px; }
+.lex-new { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.lex-new article { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; padding: 8px 10px;
+  background: linear-gradient(var(--card-2), var(--card)); border: 3px solid var(--ink); border-radius: 12px; box-shadow: 0 4px 0 var(--ink); }
+.lex-new img { width: 64px; height: 64px; object-fit: contain; }
+.lex-new b { font-family: 'Lilita One'; font-weight: 400; font-size: 16px; }
+.lex-new small { display: block; font-size: 10px; color: #dfe9ff; line-height: 1.3; }
+
+/* ---------- Troopers TV: Videoliste scrollt, Shorts im Handy-Rahmen vertikal wischen ---------- */
+.tv-banner { margin: 4px 0 10px; border-width: 3px; border-radius: 12px; box-shadow: 0 4px 0 var(--ink); }
+.tv-layout { display: grid; grid-template-columns: 1fr 250px; gap: 16px; align-items: start; }
+.tv-videos { display: grid; gap: 10px; min-width: 0; }
+.tv-player, .tv-list li { border-width: 3px; border-radius: 12px; box-shadow: 0 4px 0 var(--ink); }
+.tv-caption { font-size: 16px; padding: 22px 12px 9px; }
+.tv-play { width: 76px; height: 54px; border-width: 3px; border-radius: 13px; }
+.tv-play::after { left: 27px; top: 12px; border-left-width: 24px; border-top-width: 13px; border-bottom-width: 13px; }
+.scroll-box { max-height: 250px; overflow-y: auto; padding-right: 4px; overscroll-behavior: contain; }
+.tv-list { gap: 6px; }
+.tv-list li { grid-template-columns: 96px 1fr; font-size: 12px; box-shadow: 0 3px 0 var(--ink); }
+.tv-list img { width: 96px; }
+.tv-list small { font-size: 10px; }
+.tv-videos .btn-red { justify-self: start; }
+.tv-shorts-col .mini-title { margin-top: 0; }
+.shorts-phone { width: 100%; aspect-ratio: 9/16; max-height: 70vh; margin: 0 auto; padding: 6px; background: #0b0b16; border: 3px solid var(--ink);
+  border-radius: 22px; box-shadow: 0 4px 0 var(--ink), inset 0 0 0 2px #2b3170; }
+.shorts-feed { height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; border-radius: 16px; overscroll-behavior: contain; scrollbar-width: none; }
+.shorts-feed::-webkit-scrollbar { display: none; }
+.short-card { position: relative; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; cursor: pointer; background: #000; overflow: hidden; }
+.short-card img { width: 100%; height: 100%; object-fit: cover; }
+.short-card iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.short-card.playing img, .short-card.playing .tv-play, .short-card.playing .short-meta { display: none; }
+.short-meta { position: absolute; left: 0; right: 0; bottom: 0; padding: 30px 10px 12px; background: linear-gradient(transparent, rgba(0,0,0,.85)); display: grid; gap: 2px; }
+.short-meta b { font-size: 12px; line-height: 1.25; }
+.short-meta small { font-size: 10px; opacity: .8; }
+.tv-empty { padding: 16px; font-size: 13px; }
+
+/* ---------- Handy ---------- */
+@media (max-width: 860px) {
+  .news-grid, .tv-layout { grid-template-columns: 1fr; }
+  .tv-shorts-col { max-width: 260px; margin: 0 auto; width: 100%; }
+}
+@media (max-width: 640px) {
+  .nav-links { display: none; }
+  .hero { padding: 22px 12px 26px; }
+  .hero-badge { width: 84px; height: 84px; }
+  .hero-title { font-size: clamp(30px, 10vw, 46px); -webkit-text-stroke-width: 3px; text-shadow: 0 4px 0 var(--ink); }
+  .hero-model { display: none; }
+  .chip { font-size: 12px; padding: 4px 9px; }
+  .btn { font-size: 14px; padding: 7px 16px; }
+  .section { padding: 26px 10px 4px; }
+  .title { font-size: 21px; }
+  .sub, .desc { font-size: 12px; margin-bottom: 12px; }
+  .stats { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .stat { padding: 6px 4px; }
+  .stat b { font-size: 16px; }
+  .stat-label { font-size: 8.5px; }
+  .join-box { flex-direction: column; align-items: stretch; text-align: center; }
+  .join-box h3 { font-size: 17px; } .join-box p { font-size: 12px; }
+  .meta-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .meta-card { padding: 6px; gap: 6px; }
+  .meta-card img, .meta-card:first-child img { width: 34px; height: 34px; }
+  .meta-name { font-size: 12px; }
+  .meta-card small { font-size: 9.5px; }
+  .meta-card .pos { font-size: 13px; }
+  .podium-step { padding-top: 30px; }
+  .podium-step img { width: 42px; height: 42px; top: -22px; }
+  .podium-step.p1 { min-height: 112px; } .podium-step.p2 { min-height: 96px; } .podium-step.p3 { min-height: 84px; }
+  .podium-rank { font-size: 22px; } .podium-name { font-size: 11px; } .podium-val { font-size: 12px; }
+  .brawler-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .brawler img { height: 48px; }
+  .brawler-name { font-size: 10.5px; } .brawler .tro { font-size: 10.5px; }
+  .brawler .owner { display: none; }
+  .global-list, .top-list { grid-template-columns: 1fr; }
+  .member-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .member { grid-template-columns: 30px 1fr; gap: 6px; padding: 5px 6px; }
+  .member > img { width: 30px; height: 30px; }
+  .member .name { font-size: 12px; }
+  .member .line { font-size: 10px; }
+  .member .line + .line, .member .best { display: none; }
+  .member .tro { font-size: 11px; }
+  .news-articles { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .news-article b { font-size: 11px; }
+  .news-feature-text b { font-size: 15px; }
+  .news-videos { max-height: 220px; }
+  .lex-grid { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .lex-cell img { width: 32px; height: 32px; }
+  .lex-cell .nm { font-size: 9.5px; } .lex-cell small { font-size: 8px; }
+  .lex-new { grid-template-columns: 1fr; }
+  .event-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .event img { height: 70px; }
+  .event-head h4 { font-size: 11px; } .event-head small { font-size: 9px; }
+  .tv-list li { grid-template-columns: 84px 1fr; font-size: 11px; }
+  .tv-list img { width: 84px; }
+  .scroll-box { max-height: 210px; }
+  .tv-caption { font-size: 13px; }
+  .info-cards { grid-template-columns: 1fr; }
+}
+
+/* TV kompakter: Banner schmal, Player + Liste nebeneinander */
+.tv-banner { max-width: 620px; margin-inline: auto; }
+.tv-videos { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
+.tv-videos .tv-player { grid-column: 1; grid-row: 1 / span 2; }
+.tv-videos .tv-list { grid-column: 2; max-height: 265px; }
+.tv-videos .btn-red { grid-column: 2; }
+.tv-layout { grid-template-columns: minmax(0, 1fr) 220px; }
+@media (max-width: 860px) {
+  .tv-videos { grid-template-columns: 1fr; }
+  .tv-videos .tv-player, .tv-videos .tv-list, .tv-videos .btn-red { grid-column: 1; grid-row: auto; }
+  .tv-layout { grid-template-columns: 1fr; }
 }
