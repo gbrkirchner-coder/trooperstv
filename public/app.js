@@ -294,7 +294,8 @@ async function renderTV() {
     const feed = $('#tvShorts');
     feed.innerHTML = shorts.map((v) => `
       <div class="short-card" data-id="${v.id}">
-        <img src="https://i.ytimg.com/vi/${v.id}/oar2.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'" alt="" loading="lazy">
+        <!-- maxresdefault = eigenes Thumbnail (hochkant in der Mitte, per object-fit mittig zugeschnitten); oar2 wäre nur ein Videobild -->
+        <img src="https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'" alt="" loading="lazy">
         <span class="tv-play small"></span>
         <div class="short-meta"><b>${esc(clean(v.title))}</b><small>${date(v.published)}${v.views != null ? ` · ${fmt(v.views)} Aufrufe` : ''}</small></div>
       </div>`).join('');
