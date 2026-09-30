@@ -604,6 +604,7 @@ function heroIntro() {
   gsap.from('.hero-primo', { x: 120, rotation: 12, opacity: 0, duration: 0.8, delay: 0.2, ease: 'back.out(1.7)', clearProps: 'all' });
   gsap.from('.hero-card .pill-btn.big', { scale: 0.6, opacity: 0, duration: 0.5, delay: 0.5, ease: 'back.out(3)', clearProps: 'all' });
   pitchAnimation();
+  heroVideo();
   // Beitreten-Leiste erscheint, sobald der Kopfbereich aus dem Bild gescrollt ist
   const bar = $('#joinBar');
   if (bar) new IntersectionObserver(([e]) => bar.classList.toggle('show', !e.isIntersecting), { threshold: 0 }).observe($('.hero-card'));
@@ -726,4 +727,12 @@ function navActive() {
     const link = document.querySelector(`.nav-links a[href="#${sec.id}"]`);
     if (link) ScrollTrigger.create({ trigger: sec, start: 'top 45%', end: 'bottom 45%', toggleClass: { targets: link, className: 'active' } });
   });
+}
+
+// Kopf-Video: nur abspielen, wenn sichtbar; bei "weniger Bewegung" Standbild zeigen
+function heroVideo() {
+  const v = $('#heroVideo');
+  if (!v) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { v.removeAttribute('autoplay'); v.pause(); return; }
+  new IntersectionObserver(([e]) => (e.isIntersecting ? v.play().catch(() => {}) : v.pause()), { threshold: 0.05 }).observe(v);
 }
