@@ -1,4 +1,5 @@
 gsap.registerPlugin(ScrollTrigger);
+gsap.ticker.lagSmoothing(0);   // Animationen nach echter Zeit – auch in Hintergrund-Tabs oder bei niedriger Bildrate fertig
 
 const CDN = 'https://cdn.brawlify.com';
 const img = {
@@ -51,8 +52,12 @@ const state = { data: null, demo: false, category: 'trophies' };
   renderRanking(false);
   renderTopBrawlers();
   renderMembers();
-  await Promise.all([renderEvents(), setupGlobal(), renderTV(), renderNews(), renderTops(), renderLexikon()]);
+  await Promise.all([renderEvents(), setupGlobal(), renderTV(), renderNews(), renderTops(), renderLexikon(), loadBrawlerData()]);
+  renderGuides();
+  setupStatSearch();
   scrollAnimations();
+  router();
+  addEventListener('hashchange', router);
 })();
 
 // ---------- Aufklappen („Alle anzeigen“) ----------
@@ -108,11 +113,11 @@ function renderClub() {
 
 // ---------- Meta ----------
 function renderMeta() {
-  const usage = state.data.usage.slice(0, 9);
+  const usage = state.data.usage.slice(0, 40);
   const total = state.data.usage.reduce((s, u) => s + u.picks, 0) || 1;
   const max = usage[0]?.picks || 1;
   $('#metaGrid').innerHTML = usage.length ? usage.map((u, i) => `
-    <article class="meta-card">
+    <article class="meta-card" data-name="${esc(u.name)}">
       <span class="pos">#${i + 1}</span>
       <img src="${img.model(u.id)}" onerror="fallback(this, ${u.id})" alt="" loading="lazy">
       <div style="flex:1;min-width:0">
@@ -178,8 +183,8 @@ function renderRanking(animate) {
 
 // ---------- Top Brawler ----------
 function renderTopBrawlers() {
-  $('#topBrawlers').innerHTML = state.data.topBrawlers.slice(0, 12).map((b, i) => `
-    <article class="brawler ${i < 3 ? 'r' + (i + 1) : ''}">
+  $('#topBrawlers').innerHTML = state.data.topBrawlers.map((b, i) => `
+    <article class="brawler ${i < 3 ? 'r' + (i + 1) : ''}" data-name="${esc(b.name)}">
       <img src="${img.model(b.id)}" onerror="fallback(this, ${b.id})" alt="" loading="lazy">
       <div class="brawler-name">${esc(cap(b.name))}</div>
       <div class="tro">${trophy}${fmt(b.trophies)}</div>
@@ -254,7 +259,7 @@ function renderMembers() {
   });
 }
 
-// ---------- Troopers TV ----------
+// ---------- Troopers TV: Videos im TV-Rahmen, Shorts im Handy-Rahmen ----------
 async function renderTV() {
   let data;
   try { data = await api('data/youtube.json'); } catch { data = null; }
@@ -266,46 +271,62 @@ async function renderTV() {
   const date = (d) => new Date(d).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
   const clean = (t) => t.replace(/\s*\|\s*Brawl Stars.*$/i, '').replace(/#\S+/g, '').trim();
   const embed = (id, title) => `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+  const meta = (v) => `${date(v.published)}${v.views != null ? ` · ${fmt(v.views)} Aufrufe` : ''}`;
 
-  if (!videos.length) {
-    $('#tvPlayer').outerHTML = '<p class="tv-empty">Noch keine Videos – bald geht’s los! 🎬</p>';
-    $('#tvList').remove();
-  } else {
-    // Vorschau erst beim Klick durch den (datensparsamen) YouTube-Player ersetzen
-    const show = (v, autoplay) => {
-      const p = $('#tvPlayer');
-      p.innerHTML = autoplay ? embed(v.id, v.title)
-        : `<img src="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg" alt=""><span class="tv-play"></span><div class="tv-caption">${esc(clean(v.title))}</div>`;
-      p.onclick = autoplay ? null : () => show(v, true);
-      document.querySelectorAll('.tv-list li').forEach((li) => li.classList.toggle('active', li.dataset.id === v.id));
-    };
-    $('#tvList').innerHTML = videos.map((v) => `
-      <li data-id="${v.id}"><img src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="" loading="lazy">
-        <span>${esc(clean(v.title))}<small>${date(v.published)}${v.views != null ? ` · ${fmt(v.views)} Aufrufe` : ''}</small></span></li>`).join('');
-    $('#tvList').addEventListener('click', (e) => {
-      const li = e.target.closest('li'); if (!li) return;
-      show(videos.find((v) => v.id === li.dataset.id), true);
-    });
-    show(videos[0], false);
+  // --- TV (lange Videos) ---
+  let cur = 0;
+  const show = (i, autoplay) => {
+    if (!videos.length) return;
+    cur = (i + videos.length) % videos.length;
+    const v = videos[cur], p = $('#tvPlayer');
+    p.innerHTML = autoplay ? embed(v.id, v.title)
+      : `<img src="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg" alt=""><span class="tv-play"></span><div class="tv-caption">${esc(clean(v.title))}</div>`;
+    p.onclick = autoplay ? null : () => show(cur, true);
+    $('#tvNow').textContent = `${cur + 1} / ${videos.length} · ${clean(v.title)}`;
+    document.querySelectorAll('#tvList .strip-card').forEach((c) => c.classList.toggle('active', +c.dataset.i === cur));
+  };
+  if (!videos.length) { $('#tvPlayer').innerHTML = '<p class="tv-empty">Noch keine Videos – bald geht’s los! 🎬</p>'; }
+  else {
+    $('#tvList').innerHTML = videos.map((v, i) => `
+      <button class="strip-card" data-i="${i}"><img src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="" loading="lazy">
+        <span>${esc(clean(v.title))}<small>${meta(v)}</small></span></button>`).join('');
+    $('#tvList').addEventListener('click', (e) => { const c = e.target.closest('.strip-card'); if (c) { show(+c.dataset.i, true); $('#tv').scrollIntoView({ behavior: 'smooth' }); } });
+    $('#tvPrev').onclick = () => show(cur - 1, true);
+    $('#tvNext').onclick = () => show(cur + 1, true);
+    show(0, false);
   }
-  // Shorts: Handy-Rahmen, vertikal wischen wie in der YouTube-App; Tippen spielt den Short im Rahmen ab
-  if (shorts.length) {
-    $('#tvShortsWrap').hidden = false;
-    const feed = $('#tvShorts');
-    feed.innerHTML = shorts.map((v) => `
-      <div class="short-card" data-id="${v.id}">
-        <!-- maxresdefault = eigenes Thumbnail (hochkant in der Mitte, per object-fit mittig zugeschnitten); oar2 wäre nur ein Videobild -->
-        <img src="https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'" alt="" loading="lazy">
-        <span class="tv-play small"></span>
-        <div class="short-meta"><b>${esc(clean(v.title))}</b><small>${date(v.published)}${v.views != null ? ` · ${fmt(v.views)} Aufrufe` : ''}</small></div>
-      </div>`).join('');
-    feed.addEventListener('click', (e) => {
-      const c = e.target.closest('.short-card'); if (!c || c.querySelector('iframe')) return;
-      feed.querySelectorAll('.short-card iframe').forEach((f) => { const card = f.closest('.short-card'); f.remove(); card.classList.remove('playing'); });
-      c.insertAdjacentHTML('beforeend', embed(c.dataset.id, ''));
-      c.classList.add('playing');
-    });
-  }
+
+  // --- Handy (Shorts): vertikal wischen oder ▲▼, Tippen spielt ab ---
+  if (!shorts.length) return;
+  $('#tvShortsWrap').hidden = false;
+  const feed = $('#tvShorts');
+  feed.innerHTML = shorts.map((v, i) => `
+    <div class="short-card" data-i="${i}" data-id="${v.id}">
+      <img src="https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'" alt="" loading="lazy">
+      <span class="tv-play small"></span>
+      <div class="short-meta"><b>${esc(clean(v.title))}</b><small>${meta(v)}</small></div>
+    </div>`).join('');
+  const cards = [...feed.children];
+  const stop = () => feed.querySelectorAll('.short-card iframe').forEach((f) => { f.closest('.short-card').classList.remove('playing'); f.remove(); });
+  const play = (c) => { stop(); c.insertAdjacentHTML('beforeend', embed(c.dataset.id, '')); c.classList.add('playing'); };
+  const idx = () => Math.round(feed.scrollTop / (feed.clientHeight || 1));
+  const go = (i) => { const n = Math.max(0, Math.min(cards.length - 1, i)); feed.scrollTo({ top: n * feed.clientHeight, behavior: 'smooth' }); };
+  const label = () => {
+    const i = idx(); $('#shortNow').textContent = `${i + 1} / ${cards.length}`;
+    document.querySelectorAll('#shortStrip .strip-card').forEach((c) => c.classList.toggle('active', +c.dataset.i === i));
+  };
+  let last = 0;
+  feed.addEventListener('scroll', () => { const i = idx(); if (i !== last) { last = i; stop(); } label(); }, { passive: true });
+  feed.addEventListener('click', (e) => { const c = e.target.closest('.short-card'); if (c && !c.querySelector('iframe')) play(c); });
+  $('#shortPrev').onclick = () => go(idx() - 1);
+  $('#shortNext').onclick = () => go(idx() + 1);
+  feed.tabIndex = 0;
+  feed.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown') { e.preventDefault(); go(idx() + 1); } if (e.key === 'ArrowUp') { e.preventDefault(); go(idx() - 1); } });
+  $('#shortStrip').innerHTML = shorts.map((v, i) => `
+    <button class="strip-card short" data-i="${i}"><img src="https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'" alt="" loading="lazy">
+      <span>${esc(clean(v.title))}<small>${meta(v)}</small></span></button>`).join('');
+  $('#shortStrip').addEventListener('click', (e) => { const c = e.target.closest('.strip-card'); if (!c) return; go(+c.dataset.i); $('#tv').scrollIntoView({ behavior: 'smooth' }); });
+  label();
 }
 
 // ---------- News ----------
@@ -372,7 +393,7 @@ async function renderLexikon() {
   const rows = (all.length ? all : stats).map((b) => ({ ...b, ...(byId[b.id] || { owners: 0, p11: 0, maxTrophies: 0 }) }))
     .sort((a, b) => b.owners - a.owners || b.maxTrophies - a.maxTrophies);
   $('#lexGrid').innerHTML = rows.map((b) => `
-    <div class="lex-cell ${b.owners ? '' : 'none'}" title="${esc(cap(b.name))}: ${b.owners}/${n} besitzen ihn, ${b.p11} auf Stufe 11, bester ${fmt(b.maxTrophies)} Trophäen">
+    <div class="lex-cell ${b.owners ? '' : 'none'}" data-name="${esc(b.name)}" title="${esc(cap(b.name))}: ${b.owners}/${n} besitzen ihn, ${b.p11} auf Stufe 11, bester ${fmt(b.maxTrophies)} Trophäen">
       <img src="${img.portrait(b.id)}" onerror="this.onerror=null;this.src='maskottchen.png';this.style.opacity='.5'" alt="" loading="lazy"><span class="nm">${esc(cap(b.name))}</span>
       <span class="own"><i style="width:${Math.round((b.owners / n) * 100)}%"></i></span><small>${b.owners}/${n} · ${b.p11}× P11</small></div>`).join('');
   collapsible('#lexGrid', '#lexMore', isMobile() ? 12 : 24, 'Brawler');
@@ -401,6 +422,158 @@ function parseTime(t) {
   return m ? new Date(Date.UTC(m[1], m[2] - 1, m[3], m[4], m[5])).toLocaleString('de-DE', { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : '';
 }
 
+// ---------- Brawler-Daten (Namen, Fähigkeiten) ----------
+const store = { brawlers: [], info: {}, guides: [], byName: {} };
+async function loadBrawlerData() {
+  try { store.brawlers = (await api('data/brawlers.json')).items || []; } catch { store.brawlers = []; }
+  try { store.info = (await api('data/brawlerinfo.json')).brawlers || {}; } catch { store.info = {}; }
+  try { store.guides = (await api('guides.json')).guides || []; } catch { store.guides = []; }
+  for (const b of store.brawlers) store.byName[b.name.toLowerCase()] = b;
+  $('#brawlerNames').innerHTML = store.brawlers.map((b) => `<option value="${esc(cap(b.name))}">`).join('');
+}
+const findBrawler = (q) => {
+  q = String(q || '').trim().toLowerCase();
+  if (!q) return null;
+  return store.byName[q] || store.brawlers.find((b) => b.name.toLowerCase().startsWith(q)) || null;
+};
+const clubStat = (id) => (state.data.brawlerStats || []).find((s) => s.id === id);
+const usageOf = (id) => (state.data.usage || []).find((u) => u.id === id);
+const topOf = (id) => (state.data.topBrawlers || []).find((t) => t.id === id);
+const guideFor = (id) => store.guides.find((g) => g.brawlerId === id);
+const ytEmbed = (id, start = 0) => `<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/${id}?start=${start}&rel=0&playsinline=1" title="TroopersTV" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+
+// ---------- Guides ----------
+function renderGuides() {
+  const list = $('#guideList');
+  const draw = (q) => {
+    const b = findBrawler(q);
+    const qs = String(q || '').trim().toLowerCase();
+    const hits = store.guides.filter((g) => !qs || g.title.toLowerCase().includes(qs) || (store.info[g.brawlerId]?.name || '').toLowerCase().includes(qs));
+    let html = hits.map((g) => {
+      const inf = store.info[g.brawlerId] || {};
+      return `<a class="guide-card" href="#guides/${g.id}" style="--rc:${inf.color || '#ffd21f'}">
+        <img src="${img.model(g.brawlerId)}" onerror="fallback(this, ${g.brawlerId})" alt="" loading="lazy">
+        <div><small>${esc(inf.rarity || '')} · ${esc(g.level)}</small><b>${esc(g.title)}</b><span>${esc(g.tagline)}</span></div></a>`;
+    }).join('');
+    if (qs && !hits.length) {
+      html = `<div class="guide-empty">${b ? `Für <b>${esc(cap(b.name))}</b> gibt es noch keinen Guide.
+        <a class="more-btn" href="#statistik/${encodeURIComponent(b.name.toLowerCase())}">📊 ${esc(cap(b.name))} in der Statistik ansehen</a>` : 'Kein Brawler gefunden.'}</div>`;
+    }
+    list.innerHTML = html || '<p class="muted">Noch keine Guides.</p>';
+  };
+  $('#guideSearch').addEventListener('input', (e) => {
+    const b = findBrawler(e.target.value);
+    const g = b && guideFor(b.id);
+    if (g && b.name.toLowerCase() === e.target.value.trim().toLowerCase()) { location.hash = `guides/${g.id}`; return; }
+    draw(e.target.value);
+  });
+  draw('');
+}
+
+function showGuide(id) {
+  const g = store.guides.find((x) => x.id === id);
+  const v = $('#guideView');
+  if (!g) { v.hidden = true; $('#guideList').hidden = false; return; }
+  const inf = store.info[g.brawlerId] || {}, cs = clubStat(g.brawlerId), us = usageOf(g.brawlerId), tp = topOf(g.brawlerId);
+  const n = state.data.members.length || 1;
+  const bar = (k, val) => `<div class="rate"><span>${esc(k)}</span><i>${'<b></b>'.repeat(val)}${'<u></u>'.repeat(5 - val)}</i></div>`;
+  const abil = (x, kind) => `<div class="abil ${kind}"><small>${esc(x.type || kind)}</small><b>${esc(x.name)}</b><p>${esc(x.text)}</p></div>`;
+  const apiList = (arr, kind) => (arr || []).map((x) => abil({ type: kind, name: x.name, text: x.text }, kind.toLowerCase().replace(' ', ''))).join('');
+  v.innerHTML = `
+    <a class="back" href="#guides">← Alle Guides</a>
+    <header class="guide-head" style="--rc:${inf.color || '#ffd21f'}">
+      <img src="${img.model(g.brawlerId)}" onerror="fallback(this, ${g.brawlerId})" alt="">
+      <div>
+        <small>${esc(inf.rarity || '')}${inf.cls ? ' · ' + esc(inf.cls) : ''}</small>
+        <h2>${esc(g.title)}</h2><p class="tagline">${esc(g.tagline)}</p>
+        <p>${esc(g.summary)}</p>
+        <div class="rates">${Object.entries(g.rating || {}).map(([k, val]) => bar(k, val)).join('')}<small class="muted-note">Einschätzung TroopersTV</small></div>
+      </div>
+    </header>
+    <div class="guide-grid">
+      <section class="g-box"><h3>Fähigkeiten</h3>${(g.abilities || []).map((x) => abil(x, x.type === 'Super' ? 'super' : 'attack')).join('')}
+        ${apiList(inf.gadgets, 'Gadget')}${apiList(inf.starPowers, 'Star Power')}
+        ${inf.gadgets?.length ? '<small class="muted-note">Gadget- und Star-Power-Texte aus BrawlAPI (englisch).</small>' : ''}</section>
+      <section class="g-box"><h3>Empfohlener Build</h3>
+        <div class="build"><span>🔧 ${esc(g.build.gadget)}</span><span>⭐ ${esc(g.build.starPower)}</span></div><p>${esc(g.build.why)}</p>
+        <h3>Beste Modi</h3><div class="build">${g.modes.map((m) => `<span>${esc(m)}</span>`).join('')}</div>
+        <h3>Stärken &amp; Schwächen</h3><p>👍 ${esc(g.counters.strongVs)}</p><p>👎 ${esc(g.counters.weakVs)}</p></section>
+      <section class="g-box"><h3>Im Club</h3>
+        <div class="g-stats">
+          <div><small>Besitzen</small><b>${cs ? cs.owners : 0}/${n}</b></div><div><small>Stufe 11</small><b>${cs ? cs.p11 : 0}</b></div>
+          <div><small>Bester</small><b>${cs ? fmt(cs.maxTrophies) : '–'}</b></div><div><small>Ø Trophäen</small><b>${cs ? fmt(cs.avgTrophies) : '–'}</b></div>
+          <div><small>Picks (Meta)</small><b>${us ? us.picks : 0}</b></div><div><small>Siegquote</small><b>${us && us.picks ? Math.round((us.wins / us.picks) * 100) + '%' : '–'}</b></div>
+        </div>
+        ${tp ? `<p>Bester im Club: <b>${esc(tp.owner)}</b> mit ${fmt(tp.trophies)} 🏆</p>` : ''}
+        <a class="more-btn" href="#statistik/${encodeURIComponent((inf.name || '').toLowerCase())}">📊 Weltrangliste &amp; mehr</a></section>
+    </div>
+    <section class="g-box wide"><h3>Spielstil – mit Szenen aus unseren Videos</h3>
+      <div class="play-steps">${g.playstyle.map((p, i) => `
+        <div class="step"><div class="step-video">${p.video ? ytEmbed(p.video.id, p.video.start) : ''}</div>
+          <div><small>Tipp ${i + 1}</small><b>${esc(p.title)}</b><p>${esc(p.text)}</p></div></div>`).join('')}</div></section>`;
+  $('#guideList').hidden = true; v.hidden = false;
+  v.scrollIntoView({ block: 'start' });
+}
+
+// ---------- Statistik: Brawler-Suche ----------
+function setupStatSearch() {
+  const input = $('#statSearch');
+  const apply = (b) => {
+    const prof = $('#brawlerProfile');
+    const want = b ? b.name.toLowerCase() : '';
+    // Karten filtern
+    for (const sel of ['#metaGrid .meta-card', '#topBrawlers .brawler', '#lexGrid .lex-cell']) {
+      document.querySelectorAll(sel).forEach((c) => { const n = (c.dataset.name || '').toLowerCase(); c.classList.toggle('filtered-out', !!want && n !== want); });
+    }
+    document.querySelectorAll('#metaGrid, #topBrawlers, #lexGrid').forEach((l) => {
+      l.classList.toggle('filtering', !!want);
+      l.toggleAttribute('data-none', !!want && ![...l.children].some((c) => (c.dataset.name || '').toLowerCase() === want));
+    });
+    $('#statClear').hidden = !want;
+    if (!b) { prof.hidden = true; return; }
+    const sel = $('#globalBrawler');
+    if (sel && [...sel.options].some((o) => +o.value === b.id)) { sel.value = b.id; sel.dispatchEvent(new Event('change')); }
+    const inf = store.info[b.id] || {}, cs = clubStat(b.id), us = usageOf(b.id), tp = topOf(b.id), g = guideFor(b.id);
+    const n = state.data.members.length || 1;
+    prof.innerHTML = `
+      <img src="${img.model(b.id)}" onerror="fallback(this, ${b.id})" alt="">
+      <div class="bp-main">
+        <small style="color:${inf.color || '#fff'}">${esc(inf.rarity || '')}${inf.cls ? ' · ' + esc(inf.cls) : ''}</small>
+        <h3>${esc(cap(b.name))}</h3>
+        <p>${esc(inf.description || '')}</p>
+        <div class="g-stats">
+          <div><small>Im Club</small><b>${cs ? cs.owners : 0}/${n}</b></div><div><small>Stufe 11</small><b>${cs ? cs.p11 : 0}</b></div>
+          <div><small>Bester</small><b>${cs ? fmt(cs.maxTrophies) : '–'}</b></div><div><small>Picks</small><b>${us ? us.picks : 0}</b></div>
+          <div><small>Siegquote</small><b>${us && us.picks ? Math.round((us.wins / us.picks) * 100) + '%' : '–'}</b></div>
+          <div><small>Gadgets / SP</small><b>${(inf.gadgets || b.gadgets || []).length} / ${(inf.starPowers || b.starPowers || []).length}</b></div>
+        </div>
+        ${tp ? `<p>Bester im Club: <b>${esc(tp.owner)}</b> · ${fmt(tp.trophies)} 🏆</p>` : ''}
+        <div class="bp-links">${g ? `<a class="more-btn" href="#guides/${g.id}">📘 Zum ${esc(g.title)}</a>` : '<span class="muted">Noch kein Guide</span>'}
+          <a class="more-btn" href="#statistik" onclick="document.querySelector('.panel.global').scrollIntoView({behavior:'smooth'});return false;">🌍 Weltrangliste</a></div>
+      </div>`;
+    prof.hidden = false;
+  };
+  input.addEventListener('input', () => {
+    const b = findBrawler(input.value);
+    if (b && (b.name.toLowerCase() === input.value.trim().toLowerCase())) { history.replaceState(null, '', `#statistik/${encodeURIComponent(b.name.toLowerCase())}`); apply(b); }
+    else if (!input.value.trim()) { history.replaceState(null, '', '#statistik'); apply(null); }
+  });
+  $('#statClear').onclick = () => { input.value = ''; history.replaceState(null, '', '#statistik'); apply(null); };
+  store.applyStat = (name) => { const b = findBrawler(name); if (b) { input.value = cap(b.name); apply(b); } else { input.value = ''; apply(null); } };
+}
+
+// ---------- Navigation: #videos · #guides[/id] · #statistik[/brawler] · #clan ----------
+function router() {
+  const [view0, arg] = decodeURIComponent(location.hash.replace(/^#/, '')).split('/');
+  const view = ['videos', 'guides', 'statistik', 'clan'].includes(view0) ? view0 : 'videos';
+  document.querySelectorAll('.view').forEach((v) => (v.hidden = v.dataset.view !== view));
+  document.querySelectorAll('.nav-links a').forEach((a) => a.classList.toggle('active', a.dataset.view === view));
+  if (view === 'guides') showGuide(arg);
+  if (view === 'statistik') store.applyStat?.(arg || '');
+  if (!(view === 'guides' && arg)) scrollTo({ top: 0 });
+  requestAnimationFrame(() => ScrollTrigger.refresh());
+}
+
 // ---------- GSAP ----------
 function countUp(el, value, delay = 0) {
   const o = { v: 0 };
@@ -408,7 +581,6 @@ function countUp(el, value, delay = 0) {
 }
 
 function heroIntro() {
-  document.querySelectorAll('.hero-model').forEach((m) => (m.src = img.model(m.dataset.id)));
   gsap.to('.hero-burst', { rotation: 360, duration: 60, repeat: -1, ease: 'none' });
   gsap.to('.bg-rays', { rotation: -360, duration: 240, repeat: -1, ease: 'none' });
   const tl = gsap.timeline({ defaults: { ease: 'back.out(1.7)' } });
@@ -416,15 +588,7 @@ function heroIntro() {
     .from('.hero-kicker', { y: 20, opacity: 0, duration: 0.4 }, '-=0.4')
     .from('.hero-title', { scale: 2.4, opacity: 0, duration: 0.6, ease: 'power4.in' }, '-=0.2')
     .to('.hero-title', { x: '+=6', yoyo: true, repeat: 5, duration: 0.04, ease: 'none' })
-    .from('.hero-tag, .hero-chips .chip', { y: 30, opacity: 0, stagger: 0.08, duration: 0.5 }, '-=0.1')
-    .fromTo('.hero-buttons', { scale: 0 }, { scale: 1, duration: 0.6, ease: 'elastic.out(1, 0.5)', clearProps: 'transform' }, '-=0.2')
-    .from('.hero-model.m1', { x: -400, rotation: -20, opacity: 0, duration: 0.9 }, 0.3)
-    .from('.hero-model.m2', { x: 400, rotation: 20, opacity: 0, duration: 0.9 }, 0.45);
-  gsap.to('.hero-model.m1', { y: -18, duration: 2.2, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.3 });
-  gsap.to('.hero-model.m2', { y: -24, duration: 2.6, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 1.5 });
-  gsap.to('.hero-model.m1', { yPercent: 40, xPercent: -30, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
-  gsap.to('.hero-model.m2', { yPercent: 40, xPercent: 30, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
-  gsap.to('.hero-inner', { yPercent: 30, opacity: 0.2, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+    .from('.hero-chips .chip', { y: 20, opacity: 0, stagger: 0.06, duration: 0.4, clearProps: 'all' }, '-=0.1');
 }
 
 function scrollAnimations() {
@@ -452,10 +616,6 @@ function scrollAnimations() {
       onEnter: (els) => gsap.to(els, { opacity: 1, y: 0, scale: 1, duration: 0.55, stagger: 0.06, ease: 'back.out(1.7)', ...vars }),
     });
   };
-  ['.stat', '.join-box', '.meta-card', '.brawler', '.member', '.event', '.info', '.panel', '.news-feature', '.news-article', '.lex-new article'].forEach((s) => pop(s));
-  gsap.set('.podium-step', { y: 140, opacity: 0 });
-  ScrollTrigger.create({ trigger: '#podium', start: 'top 85%', once: true,
-    onEnter: () => gsap.to('.podium-step', { y: 0, opacity: 1, duration: 0.7, stagger: { each: 0.12, from: 'center' }, ease: 'back.out(1.6)' }) });
 
   // Top-3 Brawler leicht schweben lassen
   gsap.to('.brawler.r1 img, .brawler.r2 img, .brawler.r3 img', { y: -8, duration: 1.4, repeat: -1, yoyo: true, ease: 'sine.inOut', stagger: 0.2 });
@@ -466,7 +626,6 @@ function scrollAnimations() {
     c.addEventListener('mouseenter', () => gsap.to(im, { scale: 1.12, rotation: -4, duration: 0.3, ease: 'back.out(3)' }));
     c.addEventListener('mouseleave', () => gsap.to(im, { scale: 1, rotation: 0, duration: 0.3 }));
   });
-  navActive();
   ScrollTrigger.refresh();
 }
 

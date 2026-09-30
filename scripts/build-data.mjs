@@ -257,6 +257,25 @@ async function news() {
   return out;
 }
 
+// Brawler-Lexikon (Klasse, Seltenheit, Beschreibung, Gadgets, Star Powers) von BrawlAPI – Platzhalter wie „x%“ werden entfernt
+async function brawlerInfo() {
+  const r = await fetch('https://api.brawlapi.com/v1/brawlers', { headers: { 'User-Agent': 'TroopersTV (troopers.tv)' } });
+  if (!r.ok) throw new Error('BrawlAPI ' + r.status);
+  const j = await r.json();
+  const clean = (t) => String(t || '').replace(/<[^>]*>/g, 'X').replace(/\s*by\s+X?x?\s*%/gi, '')
+    .replace(/Every\s+(x|X)\s+seconds?/gi, 'Periodically').replace(/\b(restore|restores|heals?)\s+(x|X)\s+health/gi, '$1 health')
+    .replace(/Deals\s+(x|X)\s+damage/gi, 'Deals damage').replace(/\s(x|X)(\s|%)/g, ' ').replace(/\s+([.,])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+  const out = {};
+  for (const b of j.list || []) {
+    if (!b.released) continue;
+    out[b.id] = { name: b.name, cls: b.class?.name || '', rarity: b.rarity?.name || '', color: b.rarity?.color || '#fff', description: clean(b.description),
+      gadgets: (b.gadgets || []).map((g) => ({ name: g.name, text: clean(g.description) })),
+      starPowers: (b.starPowers || []).map((g) => ({ name: g.name, text: clean(g.description) })) };
+  }
+  if (!Object.keys(out).length) throw new Error('BrawlAPI leer');
+  return { updatedAt: new Date().toISOString(), brawlers: out };
+}
+
 function write(name, data) {
   fs.writeFileSync(path.join(OUT, name), JSON.stringify(data));
   console.log(`✔ ${name} (${(fs.statSync(path.join(OUT, name)).size / 1024).toFixed(0)} KB)`);
@@ -289,6 +308,7 @@ async function main() {
     id: b.id, name: b.name, gadgets: (b.gadgets || []).map((g) => g.name), starPowers: (b.starPowers || []).map((g) => g.name) })) }));
   await part('tops.json', () => tops());
   await part('news.json', () => news());
+  await part('brawlerinfo.json', () => brawlerInfo());
   await part('events.json', () => bs('/events/rotation'));
   if (YT_CHANNEL_ID) await part('youtube.json', () => youtubeFeed());
   if (brawlers) for (const region of RANKING_REGIONS) await part(`rankings-${region}.json`, () => rankings(region, brawlers.items));

@@ -1,0 +1,51 @@
+{
+  "guides": [
+    {
+      "id": "colt",
+      "brawlerId": 16000001,
+      "title": "Colt Guide",
+      "tagline": "Scharfschütze mit Kugelhagel – so triffst du jede Salve",
+      "level": "Einsteiger – Fortgeschritten",
+      "updated": "2026-09-30",
+      "rating": { "Reichweite": 5, "Schaden": 4, "Leben": 2, "Schwierigkeit": 3 },
+      "summary": "Colt ist ein klassischer Fernkampf-Schadensbrawler. Seine Salve aus sechs Kugeln fliegt schnurgerade und richtet enormen Schaden an, wenn alle Kugeln treffen. Er ist schwach auf kurze Distanz und lebt davon, Abstand zu halten und Gegner auf langen Wegen zu erwischen.",
+      "abilities": [
+        { "type": "Angriff", "name": "Six-Shooters", "text": "Colt feuert sechs Kugeln hintereinander in einer geraden Linie. Die Kugeln fliegen weit, aber nicht sofort – bewegliche Gegner musst du anvisieren, indem du vorhältst." },
+        { "type": "Super", "name": "Bullet Storm", "text": "Eine lange Salve mit noch größerer Reichweite, die Wände und Deckung zerstört. Ideal, um Gegner hinter Hindernissen freizulegen oder auf dem Weg zum Tresor Deckung wegzuschießen." }
+      ],
+      "build": { "gadget": "Silver Bullet", "starPower": "Slick Boots", "why": "Silver Bullet durchschlägt Wände und Brawler – stark gegen Gegner in Deckung. Slick Boots machen Colt schneller, damit er Abstand halten und Schüssen ausweichen kann." },
+      "modes": ["Tresorraub", "Knockout", "Kopfgeld"],
+      "playstyle": [
+        { "title": "Vorhalten", "text": "Ziele nicht auf den Gegner, sondern dorthin, wo er gleich ist. Colts Kugeln brauchen einen Moment – wer auf die Laufrichtung zielt, trifft deutlich öfter.", "video": { "id": "ZPy0X4YvB2U", "start": 5 } },
+        { "title": "Maximale Distanz", "text": "Bleib am Rand deiner Reichweite. Auf kurze Distanz verliert Colt fast jedes Duell gegen Nahkämpfer.", "video": { "id": "ZPy0X4YvB2U", "start": 11 } },
+        { "title": "Angeschlagene Gegner verfolgen", "text": "Eine volle Salve erledigt geschwächte Gegner sofort. Achte auf niedrige Lebensbalken und setze nach.", "video": { "id": "ZPy0X4YvB2U", "start": 18 } },
+        { "title": "Lange Wege nutzen", "text": "Auf offenen Karten mit langen Wegen – typisch für Tresorraub und Knockout – spielt Colt seine Reichweite voll aus.", "video": { "id": "ZPy0X4YvB2U", "start": 25 } }
+      ],
+      "counters": { "strongVs": "Langsame Gegner und Tanks, die über offene Wege kommen.", "weakVs": "Assassinen und schnelle Nahkämpfer, die im Gebüsch auflauern oder Abstand schnell überbrücken." },
+      "videos": ["ZPy0X4YvB2U"]
+    },
+    {
+      "id": "sprout",
+      "brawlerId": 16000037,
+      "title": "Sprout Guide",
+      "tagline": "Artillerie hinter der Hecke – Zonen halten wie ein Profi",
+      "level": "Fortgeschritten",
+      "updated": "2026-09-30",
+      "rating": { "Reichweite": 4, "Schaden": 3, "Leben": 2, "Schwierigkeit": 4 },
+      "summary": "Sprout ist ein Werfer (Artillerie): Er wirft seine Samenbomben über Wände und kontrolliert damit Gebiete, die Gegner nicht einfach betreten können. Mit seiner Hecke sperrt er Wege ab und trennt Gegner voneinander – ideal, um eine Zone zu halten.",
+      "abilities": [
+        { "type": "Angriff", "name": "Seed Bomb", "text": "Sprout wirft eine Samenbombe, die an Wänden abprallt und explodiert. Weil er über Hindernisse wirft, trifft er Gegner, die sich hinter Deckung sicher fühlen." },
+        { "type": "Super", "name": "Hedge", "text": "Sprout lässt eine Hecke wachsen, die wie eine Wand wirkt. Damit blockierst du Wege, schneidest Gegner ab oder schützt dich und dein Team für kurze Zeit." }
+      ],
+      "build": { "gadget": "Garden Mulcher", "starPower": "Overgrowth", "why": "Garden Mulcher heilt Sprout, indem er ein Gebüsch verbraucht – wichtig, weil er wenig Leben hat. Overgrowth macht in regelmäßigen Abständen die nächste Samenbombe größer." },
+      "modes": ["Heiße Zone", "Juwelenjagd", "Brawl Ball"],
+      "playstyle": [
+        { "title": "Zone einnehmen", "text": "Bleib hinter Wänden nahe der Zone und wirf von dort. So drängst du Gegner aus der Zone, ohne selbst im offenen Feuer zu stehen.", "video": { "id": "LlYTteyPdBg", "start": 0 } },
+        { "title": "Zone halten", "text": "Sobald dein Team in der Zone steht, sperrst du mit der Hecke den Zugang der Gegner ab.", "video": { "id": "LlYTteyPdBg", "start": 5 } },
+        { "title": "Der letzte Push", "text": "Kurz vor Schluss werfen Gegner alles in die Zone – halte Samenbomben bereit und decke die Eingänge ab.", "video": { "id": "LlYTteyPdBg", "start": 9 } }
+      ],
+      "counters": { "strongVs": "Gegner, die sich hinter Wänden verstecken, und Teams, die eine Zone halten wollen.", "weakVs": "Schnelle Brawler, die an ihn herankommen, und Scharfschützen, die ihn aus großer Distanz treffen." },
+      "videos": ["LlYTteyPdBg"]
+    }
+  ]
+}

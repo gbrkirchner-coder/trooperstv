@@ -32,57 +32,65 @@
   <div class="bg-rays" aria-hidden="true"></div>
 
   <nav class="nav">
-    <a href="#top" class="nav-logo"><img src="maskottchen.png" alt=""> TROOPERS</a>
-    <div class="nav-links">
-      <a href="#club">Club</a><a href="#news">News</a><a href="#meta">Meta</a><a href="#ranking">Ranking</a><a href="#top-brawler">Brawler</a>
-      <a href="#ranglisten">Ranglisten</a><a href="#members">Mitglieder</a><a href="#tv">TV</a><a href="#maps">Maps</a><a class="nav-join" href="https://link.brawlstars.com/invite/band/de?tag=2VRLRP9PU&amp;token=wrszz63f" target="_blank" rel="noopener">Beitreten</a>
+    <a href="#videos" class="nav-logo"><img src="maskottchen.png" alt=""> TROOPERS</a>
+    <div class="nav-links" role="tablist">
+      <a href="#videos" data-view="videos">▶ Videos</a><a href="#guides" data-view="guides">📘 Guides</a><a href="#statistik" data-view="statistik">📊 Statistik</a><a href="#clan" data-view="clan">🪖 Clan</a>
     </div>
+    <a class="nav-join" href="https://link.brawlstars.com/invite/band/de?tag=2VRLRP9PU&amp;token=wrszz63f" target="_blank" rel="noopener">Beitreten</a>
   </nav>
 
   <header class="hero" id="top">
     <div class="hero-burst" aria-hidden="true"></div>
-    <img class="hero-model m1" alt="" data-id="16000000">
-    <img class="hero-model m2" alt="" data-id="16000023">
     <div class="hero-inner">
       <img class="hero-badge" src="maskottchen.png" alt="TroopersTV Maskottchen">
-      <p class="hero-kicker">Brawl Stars Club</p>
-      <h1 class="hero-title" id="clubName">TROOPERS</h1>
-      <p class="hero-tag" id="clubTag">#…</p>
-      <div class="hero-chips">
-        <span class="chip trophy"><i class="ico-trophy"></i><b id="heroTrophies">0</b></span>
-        <span class="chip"><b id="heroMembers">0</b>/30 Mitglieder</span>
-        <span class="chip" id="heroType">offen</span>
-      </div>
-      <div class="hero-buttons">
-        <a class="btn btn-yellow" href="#club">LOS GEHT'S!</a>
+      <div class="hero-text">
+        <p class="hero-kicker">Brawl Stars Club · TroopersTV</p>
+        <h1 class="hero-title" id="clubName">TROOPERS</h1>
+        <div class="hero-chips">
+          <span class="chip" id="clubTag">#…</span>
+          <span class="chip trophy"><i class="ico-trophy"></i><b id="heroTrophies">0</b></span>
+          <span class="chip"><b id="heroMembers">0</b>/30 Mitglieder</span>
+          <span class="chip" id="heroType">offen</span>
+        </div>
       </div>
     </div>
     <div class="data-banner" id="dataBanner" hidden></div>
   </header>
 
   <main>
-    <section id="club" class="section">
-      <h2 class="title">Club-Übersicht</h2>
-      <p class="desc" id="clubDesc"></p>
-      <div class="stats">
-        <div class="stat blue"><span class="stat-label">Trophäen gesamt</span><b class="count" id="stTotal">0</b></div>
-        <div class="stat purple"><span class="stat-label">Ø Trophäen</span><b class="count" id="stAvg">0</b></div>
-        <div class="stat green"><span class="stat-label">Benötigt</span><b class="count" id="stReq">0</b></div>
-        <div class="stat orange"><span class="stat-label">Siegquote (letzte Kämpfe)</span><b><span class="count" id="stWin">0</span>%</b></div>
-        <div class="stat red"><span class="stat-label">Ranked-Siege (letzte Kämpfe)</span><b class="count" id="stRanked">0</b></div>
-        <div class="stat pink"><span class="stat-label">Freie Plätze</span><b class="count" id="stFree">0</b></div>
-      </div>
-      <div class="roles" id="roles"></div>
-      <div class="join-box">
-        <div>
-          <h3>Werde ein Trooper!</h3>
-          <p>Aktiv spielen, Club-Liga mitmachen, gemeinsam pushen. Ein Tipp auf den Button öffnet Brawl Stars direkt mit unserer Einladung.</p>
+    <!-- ================= VIDEOS ================= -->
+    <div class="view" id="view-videos" data-view="videos">
+    <section id="tv" class="section">
+      <h2 class="title">Troopers TV</h2>
+      <p class="sub">Unsere Clips direkt hier anschauen – Videos im TV, Shorts im Handy. Kanal: <b id="tvChannel">TroopersTV</b> (@BS-TroopersTV)</p>
+      <div class="tv-stage">
+        <div class="tv-set">
+          <div class="tv-frame"><div class="tv-player" id="tvPlayer"></div></div>
+          <div class="tv-controls">
+            <button class="ch-btn" id="tvPrev" aria-label="Vorheriges Video">◀</button>
+            <span class="tv-now" id="tvNow"></span>
+            <button class="ch-btn" id="tvNext" aria-label="Nächstes Video">▶</button>
+          </div>
+          <div class="tv-stand" aria-hidden="true"></div>
         </div>
-        <a class="btn btn-green btn-join" href="https://link.brawlstars.com/invite/band/de?tag=2VRLRP9PU&amp;token=wrszz63f" target="_blank" rel="noopener">🪖 JETZT BEITRETEN</a>
+        <div class="phone-set" id="tvShortsWrap" hidden>
+          <div class="shorts-phone"><div class="phone-notch" aria-hidden="true"></div><div class="shorts-feed" id="tvShorts"></div></div>
+          <div class="phone-controls">
+            <button class="ch-btn" id="shortPrev" aria-label="Vorheriger Short">▲</button>
+            <span class="tv-now" id="shortNow"></span>
+            <button class="ch-btn" id="shortNext" aria-label="Nächster Short">▼</button>
+          </div>
+        </div>
+      </div>
+      <div class="tv-rows">
+        <div><h3 class="mini-title">Alle Videos</h3><div class="tv-strip" id="tvList"></div></div>
+        <div><h3 class="mini-title">Alle Shorts</h3><div class="tv-strip shorts" id="shortStrip"></div></div>
+      </div>
+      <div class="tv-cta">
+        <a class="tv-banner" href="https://www.youtube.com/@BS-TroopersTV" target="_blank" rel="noopener" aria-label="YouTube-Kanal TroopersTV öffnen"><img src="tv-banner.jpg" alt="TroopersTV" loading="lazy"></a>
+        <a class="btn btn-red" id="tvSubscribe" target="_blank" rel="noopener">▶ ABONNIEREN</a>
       </div>
     </section>
-
-
     <section id="news" class="section">
       <h2 class="title">News &amp; Updates</h2>
       <p class="sub">Direkt von Supercell: Brawl Talks mit kommenden Updates, neue Videos und Artikel.</p>
@@ -96,23 +104,33 @@
       <h3 class="mini-title">Artikel</h3>
       <div class="news-articles" id="newsArticles"></div>
     </section>
+    </div>
 
+    <!-- ================= GUIDES ================= -->
+    <div class="view" id="view-guides" data-view="guides" hidden>
+    <section id="guides" class="section">
+      <h2 class="title">Brawler-Guides</h2>
+      <p class="sub">Fähigkeiten, Spielstil, beste Modi und Club-Statistiken – mit Szenen aus unseren Videos.</p>
+      <div class="search-bar"><input id="guideSearch" type="search" placeholder="Brawler suchen, z. B. Colt…" list="brawlerNames" autocomplete="off"></div>
+      <div class="guide-list" id="guideList"></div>
+      <article class="guide" id="guideView" hidden></article>
+    </section>
+    </div>
+
+    <!-- ================= STATISTIK ================= -->
+    <div class="view" id="view-statistik" data-view="statistik" hidden>
+    <section id="brawlersuche" class="section">
+      <h2 class="title">Brawler-Statistik</h2>
+      <p class="sub">Brawler suchen – Club-Daten, Meta, Weltrangliste und Guide auf einen Blick.</p>
+      <div class="search-bar"><input id="statSearch" type="search" placeholder="Brawler suchen, z. B. Sprout…" list="brawlerNames" autocomplete="off"><button class="more-btn" id="statClear" hidden>✕ zurücksetzen</button></div>
+      <div class="brawler-profile" id="brawlerProfile" hidden></div>
+    </section>
     <section id="meta" class="section">
       <h2 class="title">Meistgespielte Brawler</h2>
       <p class="sub">Ausgewertet aus den letzten Kämpfen aller Club-Mitglieder (Battlelog, max. 25 pro Spieler).</p>
       <div class="meta-grid" id="metaGrid"></div>
       <button class="more-btn" id="metaMore" hidden></button>
     </section>
-
-    <section id="ranking" class="section">
-      <h2 class="title">Kategorie-Ranking · Season</h2>
-      <p class="sub">Wer führt im Club? Wähle eine Kategorie.</p>
-      <div class="tabs" id="rankTabs"></div>
-      <div class="podium" id="podium"></div>
-      <ol class="rank-list" id="rankList"></ol>
-      <button class="more-btn" id="rankMore" hidden></button>
-    </section>
-
     <section id="top-brawler" class="section">
       <h2 class="title">Top Ranked Brawler</h2>
       <p class="sub">Die stärksten Brawler im Club – nach Trophäen des jeweils besten Mitglieds.</p>
@@ -134,8 +152,15 @@
         <button class="more-btn" id="globalMore" hidden></button>
       </div>
     </section>
-
-
+    <section id="lexikon" class="section">
+      <h2 class="title">Brawler-Sammlung</h2>
+      <p class="sub" id="lexSub">Welche Brawler der Club besitzt – und wie viele davon auf Stufe 11.</p>
+      <div class="lex-stats" id="lexStats"></div>
+      <div class="lex-grid" id="lexGrid"></div>
+      <button class="more-btn" id="lexMore" hidden></button>
+      <h3 class="mini-title">Neu im Spiel</h3>
+      <div class="lex-new" id="lexNew"></div>
+    </section>
     <section id="ranglisten" class="section">
       <h2 class="title">Ranglisten</h2>
       <p class="sub" id="clubRankLine">Die besten Clubs und Spieler – Deutschland und weltweit.</p>
@@ -146,17 +171,43 @@
       <ol class="top-list" id="topList"></ol>
       <button class="more-btn" id="topMore" hidden></button>
     </section>
-
-    <section id="lexikon" class="section">
-      <h2 class="title">Brawler-Sammlung</h2>
-      <p class="sub" id="lexSub">Welche Brawler der Club besitzt – und wie viele davon auf Stufe 11.</p>
-      <div class="lex-stats" id="lexStats"></div>
-      <div class="lex-grid" id="lexGrid"></div>
-      <button class="more-btn" id="lexMore" hidden></button>
-      <h3 class="mini-title">Neu im Spiel</h3>
-      <div class="lex-new" id="lexNew"></div>
+    <section id="maps" class="section">
+      <h2 class="title">Aktuelle Maps</h2>
+      <div class="event-grid" id="eventGrid"></div>
+      <button class="more-btn" id="eventMore" hidden></button>
     </section>
+    </div>
 
+    <!-- ================= CLAN ================= -->
+    <div class="view" id="view-clan" data-view="clan" hidden>
+    <section id="club" class="section">
+      <h2 class="title">Club-Übersicht</h2>
+      <p class="desc" id="clubDesc"></p>
+      <div class="stats">
+        <div class="stat blue"><span class="stat-label">Trophäen gesamt</span><b class="count" id="stTotal">0</b></div>
+        <div class="stat purple"><span class="stat-label">Ø Trophäen</span><b class="count" id="stAvg">0</b></div>
+        <div class="stat green"><span class="stat-label">Benötigt</span><b class="count" id="stReq">0</b></div>
+        <div class="stat orange"><span class="stat-label">Siegquote (letzte Kämpfe)</span><b><span class="count" id="stWin">0</span>%</b></div>
+        <div class="stat red"><span class="stat-label">Ranked-Siege (letzte Kämpfe)</span><b class="count" id="stRanked">0</b></div>
+        <div class="stat pink"><span class="stat-label">Freie Plätze</span><b class="count" id="stFree">0</b></div>
+      </div>
+      <div class="roles" id="roles"></div>
+      <div class="join-box">
+        <div>
+          <h3>Werde ein Trooper!</h3>
+          <p>Aktiv spielen, Club-Liga mitmachen, gemeinsam pushen. Ein Tipp auf den Button öffnet Brawl Stars direkt mit unserer Einladung.</p>
+        </div>
+        <a class="btn btn-green btn-join" href="https://link.brawlstars.com/invite/band/de?tag=2VRLRP9PU&amp;token=wrszz63f" target="_blank" rel="noopener">🪖 JETZT BEITRETEN</a>
+      </div>
+    </section>
+    <section id="ranking" class="section">
+      <h2 class="title">Kategorie-Ranking · Season</h2>
+      <p class="sub">Wer führt im Club? Wähle eine Kategorie.</p>
+      <div class="tabs" id="rankTabs"></div>
+      <div class="podium" id="podium"></div>
+      <ol class="rank-list" id="rankList"></ol>
+      <button class="more-btn" id="rankMore" hidden></button>
+    </section>
     <section id="members" class="section">
       <h2 class="title">Mitglieder</h2>
       <div class="toolbar">
@@ -169,32 +220,6 @@
       <div class="member-grid" id="memberGrid"></div>
       <button class="more-btn" id="memberMore" hidden></button>
     </section>
-
-    <section id="tv" class="section">
-      <h2 class="title">Troopers TV</h2>
-      <a class="tv-banner" href="https://www.youtube.com/@BS-TroopersTV" target="_blank" rel="noopener" aria-label="YouTube-Kanal TroopersTV öffnen">
-        <img src="tv-banner.jpg" alt="TroopersTV – Brawl Stars Clips, Highlights, Replays" loading="lazy">
-      </a>
-      <p class="sub">Die neuesten Clips unserer Mitglieder – direkt vom YouTube-Kanal <b id="tvChannel">TroopersTV</b> (@BS-TroopersTV).</p>
-      <div class="tv-layout">
-        <div class="tv-videos">
-          <div class="tv-player" id="tvPlayer"></div>
-          <ol class="tv-list scroll-box" id="tvList"></ol>
-          <a class="btn btn-red" id="tvSubscribe" target="_blank" rel="noopener">▶ ABONNIEREN</a>
-        </div>
-        <div class="tv-shorts-col" id="tvShortsWrap" hidden>
-          <h3 class="mini-title">Shorts <small>– wischen ↕</small></h3>
-          <div class="shorts-phone"><div class="shorts-feed" id="tvShorts"></div></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="maps" class="section">
-      <h2 class="title">Aktuelle Maps</h2>
-      <div class="event-grid" id="eventGrid"></div>
-      <button class="more-btn" id="eventMore" hidden></button>
-    </section>
-
     <section class="section api-info">
       <h2 class="title small">Woher kommen die Daten?</h2>
       <div class="info-cards">
@@ -203,6 +228,8 @@
         <div class="info"><h4>Aktualisierung</h4><p>Die Daten werden alle 30 Minuten automatisch aktualisiert. Stand: <b id="updatedAt">–</b></p></div>
       </div>
     </section>
+    </div>
+    <datalist id="brawlerNames"></datalist>
   </main>
 
   <footer class="footer">
