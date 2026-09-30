@@ -270,7 +270,8 @@ async function renderTV() {
   const shorts = (data?.videos || []).filter((v) => v.short);
   const date = (d) => new Date(d).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
   const clean = (t) => t.replace(/\s*\|\s*Brawl Stars.*$/i, '').replace(/#\S+/g, '').trim();
-  const embed = (id, title) => `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+  // muted = Autoplay ohne Ton (Browser erlauben Autoplay nur stumm); Ton über die YouTube-Steuerung
+  const embed = (id, title, muted) => `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1${muted ? `&mute=1&loop=1&playlist=${id}` : ''}" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
   const meta = (v) => `${date(v.published)}${v.views != null ? ` · ${fmt(v.views)} Aufrufe` : ''}`;
 
   // --- TV (lange Videos) ---
@@ -296,7 +297,7 @@ async function renderTV() {
     show(0, false);
   }
 
-  // --- Handy (Shorts): vertikal wischen oder ▲▼, Tippen spielt ab ---
+  // --- Handy (Shorts): vertikal wischen oder ▲▼, spielen automatisch (stumm), sobald sichtbar ---
   if (!shorts.length) return;
   $('#tvShortsWrap').hidden = false;
   const feed = $('#tvShorts');
@@ -308,15 +309,22 @@ async function renderTV() {
     </div>`).join('');
   const cards = [...feed.children];
   const stop = () => feed.querySelectorAll('.short-card iframe').forEach((f) => { f.closest('.short-card').classList.remove('playing'); f.remove(); });
-  const play = (c) => { stop(); c.insertAdjacentHTML('beforeend', embed(c.dataset.id, '')); c.classList.add('playing'); };
+  const play = (c, muted) => { stop(); c.insertAdjacentHTML('beforeend', embed(c.dataset.id, '', muted)); c.classList.add('playing'); };
   const idx = () => Math.round(feed.scrollTop / (feed.clientHeight || 1));
   const go = (i) => { const n = Math.max(0, Math.min(cards.length - 1, i)); feed.scrollTo({ top: n * feed.clientHeight, behavior: 'smooth' }); };
   const label = () => {
     const i = idx(); $('#shortNow').textContent = `${i + 1} / ${cards.length}`;
     document.querySelectorAll('#shortStrip .strip-card').forEach((c) => c.classList.toggle('active', +c.dataset.i === i));
   };
-  let last = 0;
-  feed.addEventListener('scroll', () => { const i = idx(); if (i !== last) { last = i; stop(); } label(); }, { passive: true });
+  // Autoplay: nur solange das Handy im Bild und der Tab aktiv ist; nach dem Wischen startet der aktuelle Short
+  let last = 0, visible = false, settle;
+  const auto = () => { const c = cards[idx()]; if (visible && !document.hidden && c && !c.querySelector('iframe')) play(c, true); };
+  feed.addEventListener('scroll', () => {
+    const i = idx(); if (i !== last) { last = i; stop(); } label();
+    clearTimeout(settle); settle = setTimeout(auto, 250);
+  }, { passive: true });
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; visible ? auto() : stop(); }, { threshold: 0.5 }).observe(feed);
+  document.addEventListener('visibilitychange', () => (document.hidden ? stop() : auto()));
   feed.addEventListener('click', (e) => { const c = e.target.closest('.short-card'); if (c && !c.querySelector('iframe')) play(c); });
   $('#shortPrev').onclick = () => go(idx() - 1);
   $('#shortNext').onclick = () => go(idx() + 1);
