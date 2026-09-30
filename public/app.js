@@ -748,6 +748,8 @@ const FREIGABE_TAG = 'troopers-freigabe';
 const YT = 'https://www.googleapis.com/youtube/v3/';
 
 function setupStudio() {
+  if (!STUDIO_CLIENT_ID) return;   // erst sichtbar, wenn die Google-Anmeldung eingerichtet ist
+  $('#freigabe').hidden = false;
   const msg = (t) => ($('#studioMsg').innerHTML = t);
   const grid = $('#studioGrid'), login = $('#studioLogin'), reload = $('#studioReload');
   let token = null, items = [];
