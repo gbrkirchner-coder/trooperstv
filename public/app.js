@@ -55,6 +55,7 @@ const state = { data: null, demo: false, category: 'trophies' };
   await Promise.all([renderEvents(), setupGlobal(), renderTV(), renderNews(), renderTops(), renderLexikon(), loadBrawlerData()]);
   renderGuides();
   setupStatSearch();
+  setupStudio();
   scrollAnimations();
   router();
   addEventListener('hashchange', router);
@@ -588,6 +589,7 @@ function router() {
   document.querySelectorAll('.view').forEach((v) => (v.hidden = v.dataset.view !== view));
   document.querySelectorAll('.nav-links a').forEach((a) => a.classList.toggle('active', a.dataset.view === view));
   if (view === 'guides') showGuide(arg);
+  if (view === 'statistik' && arg === 'freigabe') { store.applyStat?.(''); setTimeout(() => $('#freigabe').scrollIntoView(), 50); return; }
   if (view === 'statistik') store.applyStat?.(arg || '');
   if (!(view === 'guides' && arg)) scrollTo({ top: 0 });
   requestAnimationFrame(() => ScrollTrigger.refresh());
@@ -735,4 +737,110 @@ function heroVideo() {
   if (!v) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { v.removeAttribute('autoplay'); v.pause(); return; }
   new IntersectionObserver(([e]) => (e.isIntersecting ? v.play().catch(() => {}) : v.pause()), { threshold: 0.05 }).observe(v);
+}
+
+// ---------- Shorts-Freigabe (Team) ----------
+// trooperscut lädt neue Shorts "nicht gelistet" mit dem Tag FREIGABE_TAG hoch. Hier sieht das Team sie,
+// spielt sie ab und stellt sie auf öffentlich oder löscht sie. Alles läuft im Browser über die YouTube Data API;
+// die Anmeldung (Google) klappt nur mit Konten, die den Kanal verwalten.
+const STUDIO_CLIENT_ID = '';   // OAuth-Client-ID (Webanwendung, Ursprung https://troopers.tv) aus der Google Cloud Console
+const FREIGABE_TAG = 'troopers-freigabe';
+const YT = 'https://www.googleapis.com/youtube/v3/';
+
+function setupStudio() {
+  if (!STUDIO_CLIENT_ID) return;   // erst sichtbar, wenn die Google-Anmeldung eingerichtet ist
+  $('#freigabe').hidden = false;
+  const msg = (t) => ($('#studioMsg').innerHTML = t);
+  const grid = $('#studioGrid'), login = $('#studioLogin'), reload = $('#studioReload');
+  let token = null, items = [];
+
+  const yt = async (path, opt = {}) => {
+    const res = await fetch(YT + path, { ...opt, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+    if (res.status === 401) { token = null; login.hidden = false; reload.hidden = true; throw new Error('Anmeldung abgelaufen – bitte neu anmelden.'); }
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || `YouTube-Fehler ${res.status}`); }
+    return res.status === 204 ? null : res.json();
+  };
+  const secs = (d) => { const m = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/.exec(d || '') || []; return (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0); };
+
+  async function load() {
+    msg('Lade wartende Shorts…'); grid.innerHTML = '';
+    const ch = await yt('channels?part=contentDetails,snippet&mine=true');
+    const c = ch.items?.[0];
+    if (!c) throw new Error('Mit diesem Konto ist kein YouTube-Kanal verbunden.');
+    $('#studioHead').textContent = `🎬 ${c.snippet.title}`;
+    const ids = []; let page = '';
+    for (let i = 0; i < 4; i++) {   // die neuesten 200 Uploads reichen
+      const pl = await yt(`playlistItems?part=contentDetails&maxResults=50&playlistId=${c.contentDetails.relatedPlaylists.uploads}${page ? '&pageToken=' + page : ''}`);
+      ids.push(...pl.items.map((x) => x.contentDetails.videoId));
+      if (!(page = pl.nextPageToken)) break;
+    }
+    items = [];
+    for (let i = 0; i < ids.length; i += 50) {
+      const v = await yt(`videos?part=snippet,status,contentDetails&id=${ids.slice(i, i + 50).join(',')}`);
+      items.push(...v.items.filter((x) => x.status.privacyStatus === 'unlisted' && (x.snippet.tags || []).includes(FREIGABE_TAG)));
+    }
+    render();
+  }
+
+  function render() {
+    if (!items.length) { grid.innerHTML = ''; msg('✅ Keine Shorts warten auf Freigabe.'); return; }
+    msg(`${items.length} ${items.length === 1 ? 'Short wartet' : 'Shorts warten'} auf Freigabe. Antippen zum Abspielen.`);
+    grid.innerHTML = items.map((v) => `
+      <article class="studio-card" data-id="${v.id}">
+        <div class="studio-player"><img src="${esc(v.snippet.thumbnails?.high?.url || '')}" alt=""><span class="tv-play small"></span>
+          <span class="studio-len">${secs(v.contentDetails.duration)} s</span></div>
+        <input class="studio-title" value="${esc(v.snippet.title)}" maxlength="100" aria-label="Titel">
+        <small>${new Date(v.snippet.publishedAt).toLocaleString('de-DE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small>
+        <div class="studio-btns"><button class="more-btn ok">✔ Freigeben</button><button class="more-btn no">✖ Verwerfen</button></div>
+      </article>`).join('');
+  }
+
+  grid.addEventListener('click', async (e) => {
+    const card = e.target.closest('.studio-card'); if (!card) return;
+    const v = items.find((x) => x.id === card.dataset.id);
+    if (e.target.closest('.studio-player')) {
+      grid.querySelectorAll('.studio-player iframe').forEach((f) => f.remove());
+      card.querySelector('.studio-player').insertAdjacentHTML('beforeend',
+        `<iframe src="https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&rel=0&playsinline=1" title="${esc(v.snippet.title)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`);
+      return;
+    }
+    const ok = e.target.closest('.ok'), no = e.target.closest('.no');
+    if (!ok && !no) return;
+    const title = card.querySelector('.studio-title').value.trim() || v.snippet.title;
+    if (no && !confirm(`„${title}“ endgültig von YouTube löschen?`)) return;
+    card.querySelectorAll('button').forEach((b) => (b.disabled = true));
+    try {
+      if (ok) {
+        const { categoryId, description, defaultLanguage, defaultAudioLanguage } = v.snippet;
+        const tags = (v.snippet.tags || []).filter((t) => t !== FREIGABE_TAG);
+        const st = v.status;
+        await yt('videos?part=snippet,status', { method: 'PUT', body: JSON.stringify({ id: v.id,
+          snippet: { title, categoryId, description, tags, defaultLanguage, defaultAudioLanguage },
+          status: { privacyStatus: 'public', embeddable: st.embeddable, license: st.license, publicStatsViewable: st.publicStatsViewable, selfDeclaredMadeForKids: st.madeForKids } }) });
+      } else {
+        await yt(`videos?id=${v.id}`, { method: 'DELETE' });
+      }
+      items = items.filter((x) => x !== v);
+      render();
+      msg(`${ok ? '🚀 Freigegeben: ' : '🗑️ Gelöscht: '}„${esc(title)}“. ${$('#studioMsg').innerHTML}`);
+    } catch (err) {
+      card.querySelectorAll('button').forEach((b) => (b.disabled = false));
+      msg(`⚠️ ${esc(err.message)}`);
+    }
+  });
+
+  const run = () => load().then(() => { login.hidden = true; reload.hidden = false; }).catch((err) => msg(`⚠️ ${esc(err.message)}`));
+  reload.onclick = run;
+  login.onclick = () => {
+    if (!STUDIO_CLIENT_ID) { msg('⚠️ Die Anmeldung ist noch nicht eingerichtet (Google-Client-ID fehlt).'); return; }
+    const start = () => google.accounts.oauth2.initTokenClient({
+      client_id: STUDIO_CLIENT_ID, scope: 'https://www.googleapis.com/auth/youtube',
+      callback: (r) => { if (r.error) { msg(`⚠️ Anmeldung abgebrochen (${esc(r.error)}).`); return; } token = r.access_token; run(); },
+    }).requestAccessToken();
+    if (window.google?.accounts?.oauth2) return start();
+    const sc = document.createElement('script');
+    sc.src = 'https://accounts.google.com/gsi/client'; sc.onload = start;
+    sc.onerror = () => msg('⚠️ Google-Anmeldung konnte nicht geladen werden.');
+    document.head.append(sc);
+  };
 }

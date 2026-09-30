@@ -39,6 +39,10 @@ jobs:
           YT_API_KEY: ${{ secrets.YT_API_KEY }}
           SITE_URL: https://troopers.tv
 
+      # Browser sollen nach jeder Veröffentlichung das neue CSS/JS laden
+      - name: Cache-Version setzen
+        run: sed -i "s/?v=[A-Za-z0-9]*/?v=${GITHUB_SHA::7}/g" public/index.html
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
