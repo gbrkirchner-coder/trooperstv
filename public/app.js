@@ -307,17 +307,36 @@ async function renderTV() {
       <div class="short-meta"><b>${esc(clean(v.title))}</b><small>${meta(v)}</small></div>
     </div>`).join('');
   const cards = [...feed.children];
+  // Autoplay (Desktop + Handy): sichtbarer Short läuft stumm in Schleife; Ton-Knopf schaltet per IFrame-API um.
+  let soundOn = false;
+  const cmd = (f, func) => f?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args: [] }), '*');
+  const autoEmbed = (id) => `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&playsinline=1&rel=0&modestbranding=1&enablejsapi=1" title="TroopersTV Short" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
   const stop = () => feed.querySelectorAll('.short-card iframe').forEach((f) => { f.closest('.short-card').classList.remove('playing'); f.remove(); });
-  const play = (c) => { stop(); c.insertAdjacentHTML('beforeend', embed(c.dataset.id, '')); c.classList.add('playing'); };
+  const play = (c) => {
+    if (c.querySelector('iframe')) return;
+    stop(); c.insertAdjacentHTML('beforeend', autoEmbed(c.dataset.id)); c.classList.add('playing');
+    const f = c.querySelector('iframe');
+    f.addEventListener('load', () => {
+      f.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1 }), '*');
+      [400, 1200].forEach((ms) => setTimeout(() => { cmd(f, 'playVideo'); if (soundOn) cmd(f, 'unMute'); }, ms));
+    });
+  };
   const idx = () => Math.round(feed.scrollTop / (feed.clientHeight || 1));
   const go = (i) => { const n = Math.max(0, Math.min(cards.length - 1, i)); feed.scrollTo({ top: n * feed.clientHeight, behavior: 'smooth' }); };
   const label = () => {
     const i = idx(); $('#shortNow').textContent = `${i + 1} / ${cards.length}`;
     document.querySelectorAll('#shortStrip .strip-card').forEach((c) => c.classList.toggle('active', +c.dataset.i === i));
   };
-  let last = 0;
-  feed.addEventListener('scroll', () => { const i = idx(); if (i !== last) { last = i; stop(); } label(); }, { passive: true });
-  feed.addEventListener('click', (e) => { const c = e.target.closest('.short-card'); if (c && !c.querySelector('iframe')) play(c); });
+  let visible = false, settle;
+  const playCurrent = () => { if (visible) play(cards[Math.min(cards.length - 1, idx())]); };
+  feed.addEventListener('scroll', () => { label(); clearTimeout(settle); settle = setTimeout(playCurrent, 180); }, { passive: true });
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; visible ? playCurrent() : stop(); }, { threshold: 0.5 }).observe(feed);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else playCurrent(); });
+  const snd = $('#shortSound');
+  if (snd) snd.onclick = () => {
+    soundOn = !soundOn; snd.textContent = soundOn ? '🔊' : '🔇'; snd.setAttribute('aria-pressed', soundOn);
+    cmd(feed.querySelector('.short-card iframe'), soundOn ? 'unMute' : 'mute');
+  };
   $('#shortPrev').onclick = () => go(idx() - 1);
   $('#shortNext').onclick = () => go(idx() + 1);
   feed.tabIndex = 0;
