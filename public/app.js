@@ -94,7 +94,7 @@ function renderClub() {
   const wins = members.reduce((s, m) => s + (m.form?.wins || 0), 0);
   const ranked = members.reduce((s, m) => s + (m.form?.rankedWins || 0), 0);
 
-  $('#clubName').innerHTML = [...String(club.name).toUpperCase()].map((c) => `<span class="ch">${c === ' ' ? '&nbsp;' : esc(c)}</span>`).join('');
+  if ($('#joinFree')) $('#joinFree').textContent = Math.max(0, 30 - members.length) + ' freie';
   $('#clubTag').textContent = club.tag;
   $('#heroType').textContent = { open: 'Offen', inviteOnly: 'Nur mit Einladung', closed: 'Geschlossen' }[club.type] || club.type;
   $('#clubDesc').textContent = club.description || '';
@@ -581,14 +581,86 @@ function countUp(el, value, delay = 0) {
 }
 
 function heroIntro() {
-  gsap.to('.hero-burst', { rotation: 360, duration: 60, repeat: -1, ease: 'none' });
-  gsap.to('.bg-rays', { rotation: -360, duration: 240, repeat: -1, ease: 'none' });
-  const tl = gsap.timeline({ defaults: { ease: 'back.out(1.7)' } });
-  tl.from('.hero-badge', { scale: 0, rotation: -200, duration: 0.9 })
-    .from('.hero-kicker', { y: 20, opacity: 0, duration: 0.4 }, '-=0.4')
-    .from('.hero-title', { scale: 2.4, opacity: 0, duration: 0.6, ease: 'power4.in' }, '-=0.2')
-    .to('.hero-title', { x: '+=6', yoyo: true, repeat: 5, duration: 0.04, ease: 'none' })
-    .from('.hero-chips .chip', { y: 20, opacity: 0, stagger: 0.06, duration: 0.4, clearProps: 'all' }, '-=0.1');
+  gsap.from('.hero-card', { y: 40, opacity: 0, duration: 0.7, ease: 'back.out(1.6)', clearProps: 'all' });
+  gsap.from('.hero-primo', { x: 120, rotation: 12, opacity: 0, duration: 0.8, delay: 0.2, ease: 'back.out(1.7)', clearProps: 'all' });
+  gsap.from('.hero-card .pill-btn.big', { scale: 0.6, opacity: 0, duration: 0.5, delay: 0.5, ease: 'back.out(3)', clearProps: 'all' });
+  pitchAnimation();
+  // Beitreten-Leiste erscheint, sobald der Kopfbereich aus dem Bild gescrollt ist
+  const bar = $('#joinBar');
+  if (bar) new IntersectionObserver(([e]) => bar.classList.toggle('show', !e.isIntersecting), { threshold: 0 }).observe($('.hero-card'));
+}
+
+// Brawl-Ball-Szene im Kopfbereich: Dribbeln, Doppelpass, Schuss, Tor – Seiten wechseln sich ab
+function pitchAnimation() {
+  const pitch = $('#pitch');
+  if (!pitch) return;
+  const $p = (id) => $('#' + id);
+  const ball = $p('ball'), shadow = $p('ballShadow'), txt = $p('goalText');
+  const B = ['plB1', 'plB2', 'plB3'].map($p), R = ['plR1', 'plR2', 'plR3'].map($p);
+  const S = { x: 50, y: 50, h: 0 };
+  const rings = [...pitch.querySelectorAll('.ring')].map((r) => [r, $p(r.dataset.for)]);
+  const draw = () => {
+    for (const [r, el] of rings) { r.style.left = el.style.left; r.style.top = el.style.top; }
+    ball.style.left = S.x + '%'; ball.style.top = S.y + '%'; ball.style.transform = `translate(-50%, calc(-50% - ${S.h}px)) rotate(${S.x * 12}deg)`;
+    shadow.style.left = S.x + '%'; shadow.style.top = S.y + '%'; shadow.style.transform = `translate(-50%, -50%) scale(${1 - Math.min(0.6, S.h / 90)})`;
+  };
+  const place = (el, x, y) => gsap.set(el, { left: x + '%', top: y + '%' });
+  const face = (el, dx) => { if (dx) gsap.set(el, { scaleX: dx < 0 ? -1 : 1 }); };
+  const score = { b: 0, r: 0 };
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    [[B[0], 40, 50], [B[1], 30, 25], [B[2], 30, 78], [R[0], 62, 48], [R[1], 72, 72], [R[2], 75, 26]].forEach(([e, x, y]) => place(e, x, y));
+    Object.assign(S, { x: 44, y: 52 }); draw(); return;
+  }
+  // m = Spiegelung für die Gegenseite (x → 100 − x)
+  const seq = (att, def, mirror, onGoal) => {
+    const X = (x) => (mirror ? 100 - x : x);
+    const Y = (y) => 12 + y * 0.62;   // Spielzüge im sichtbaren oberen Teil (die Karte überdeckt den unteren Rand)
+    const tl = gsap.timeline({ defaults: { ease: 'power1.inOut' }, onUpdate: draw });
+    const run = (el, x, y, d, at) => {
+      tl.call(() => face(el, (X(x) - parseFloat(el.style.left || 50)) * 1), null, at);
+      tl.to(el, { left: X(x) + '%', top: Y(y) + '%', duration: d }, at);
+      tl.to(el, { y: -6, duration: d / 6, repeat: 5, yoyo: true, ease: 'sine.inOut' }, at);
+    };
+    const kick = (x, y, d, at, hMax = 40) => {
+      tl.to(S, { x: X(x), y: Y(y), duration: d, ease: 'none' }, at);
+      tl.to(S, { keyframes: [{ h: hMax, duration: d / 2, ease: 'power2.out' }, { h: 0, duration: d / 2, ease: 'power2.in' }] }, at);
+    };
+    tl.call(() => {
+      [[att[0], 32, 50], [att[1], 38, 24], [att[2], 26, 76], [def[0], 60, 48], [def[1], 70, 72], [def[2], 80, 28]].forEach(([e, x, y]) => { place(e, X(x), Y(y)); face(e, mirror ? -1 : 1); });
+      [def[0], def[1], def[2]].forEach((e) => face(e, mirror ? 1 : -1));
+      Object.assign(S, { x: X(35), y: Y(52), h: 0 }); draw();
+      gsap.set(txt, { scale: 0, opacity: 0 });
+    });
+    // 1) Dribbling, Verteidiger presst
+    run(att[0], 48, 50, 1.3, 0.2); tl.to(S, { x: X(51), y: Y(52), duration: 1.3 }, 0.2);
+    run(def[0], 56, 47, 1.1, 0.4);
+    // 2) Pass auf den Flügel
+    run(att[1], 60, 22, 1.4, 0.8); kick(60, 24, 0.7, 1.5, 55);
+    run(att[0], 58, 60, 1.2, 1.6); run(def[2], 68, 30, 1.0, 1.7);
+    // 3) Dribbling + Querpass in die Mitte
+    run(att[1], 72, 26, 0.9, 2.3); tl.to(S, { x: X(74), y: Y(28), duration: 0.9 }, 2.3);
+    run(att[2], 76, 62, 1.8, 1.4); run(def[1], 82, 60, 1.2, 2.2);
+    kick(78, 60, 0.6, 3.25, 30);
+    // 4) Schuss aufs Tor, Keeper-Sprung zu spät
+    tl.to(S, { x: X(97), y: Y(50), duration: 0.45, ease: 'power2.in' }, 3.95);
+    tl.to(S, { keyframes: [{ h: 22, duration: 0.22 }, { h: 0, duration: 0.23 }] }, 3.95);
+    run(def[1], 90, 48, 0.4, 3.95);
+    // 5) Tor!
+    tl.call(() => { onGoal(); pitch.classList.add('flash'); setTimeout(() => pitch.classList.remove('flash'), 350); }, null, 4.4);
+    tl.fromTo(txt, { scale: 0, opacity: 0, rotation: -12 }, { scale: 1, opacity: 1, rotation: -6, duration: 0.5, ease: 'back.out(3)' }, 4.4);
+    att.forEach((e, i) => tl.to(e, { y: -22, duration: 0.25, repeat: 3, yoyo: true, ease: 'power2.out' }, 4.45 + i * 0.08));
+    tl.to(txt, { scale: 0.6, opacity: 0, duration: 0.3 }, 6.2);
+    tl.to([...att, ...def, ball, shadow], { opacity: 0, duration: 0.3 }, 6.3);
+    tl.set([...att, ...def, ball, shadow], { opacity: 1 }, 6.65);
+    return tl;
+  };
+  const scoreEl = pitch.querySelector('.score');
+  const upd = () => { scoreEl.querySelector('.sb').textContent = score.b; scoreEl.querySelector('.sr').textContent = score.r; gsap.fromTo(scoreEl, { scale: 1.4 }, { scale: 1, duration: 0.4, ease: 'back.out(3)' }); };
+  const master = gsap.timeline({ repeat: -1, onRepeat: () => { if (score.b + score.r >= 10) { score.b = 0; score.r = 0; upd(); } } });
+  master.add(seq(B, R, false, () => { score.b++; upd(); }));
+  master.add(seq(R, B, true, () => { score.r++; upd(); }));
+  // Nur animieren, wenn sichtbar (spart Akku)
+  new IntersectionObserver(([e]) => (e.isIntersecting ? master.play() : master.pause()), { threshold: 0.05 }).observe(pitch);
 }
 
 function scrollAnimations() {

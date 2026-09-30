@@ -32,30 +32,48 @@
   <div class="bg-rays" aria-hidden="true"></div>
 
   <nav class="nav">
-    <a href="#videos" class="nav-logo"><img src="maskottchen.png" alt=""> TROOPERS</a>
+    <a href="#videos" class="nav-logo"><img src="maskottchen.png" alt=""> <span>TROOPERS</span></a>
     <div class="nav-links" role="tablist">
       <a href="#videos" data-view="videos">▶ Videos</a><a href="#guides" data-view="guides">📘 Guides</a><a href="#statistik" data-view="statistik">📊 Statistik</a><a href="#clan" data-view="clan">🪖 Clan</a>
     </div>
-    <a class="nav-join" href="https://link.brawlstars.com/invite/band/de?tag=2VRLRP9PU&amp;token=wrszz63f" target="_blank" rel="noopener">Beitreten</a>
+    <a class="pill-btn nav-join" href="https://link.brawlstars.com/invite/band/de?tag=2VRLRP9PU&amp;token=wrszz63f" target="_blank" rel="noopener">CLUB BEITRETEN</a>
   </nav>
 
   <header class="hero" id="top">
-    <div class="hero-burst" aria-hidden="true"></div>
-    <div class="hero-inner">
-      <img class="hero-badge" src="maskottchen.png" alt="TroopersTV Maskottchen">
-      <div class="hero-text">
+    <!-- Animierter Kopf: Brawl Ball auf einem nachempfundenen Spielfeld (eigene Zeichnung) -->
+    <div class="pitch" id="pitch" aria-hidden="true">
+      <div class="pitch-grass"></div>
+      <div class="pitch-lines"><i class="mid"></i><i class="circle"></i><i class="box l"></i><i class="box r"></i></div>
+      <div class="goal l"></div><div class="goal r"></div>
+      <div class="bush b1"></div><div class="bush b2"></div><div class="bush b3"></div><div class="bush b4"></div>
+      <div class="wall w1"></div><div class="wall w2"></div><div class="wall w3"></div><div class="wall w4"></div>
+      <i class="ring b" data-for="plB1"></i><img class="pl" id="plB1" src="img/skins/blue-colt.webp" alt=""><i class="ring b" data-for="plB2"></i><img class="pl" id="plB2" src="img/skins/blue-carl.webp" alt=""><i class="ring b" data-for="plB3"></i><img class="pl" id="plB3" src="img/skins/blue-bull.webp" alt="">
+      <i class="ring r" data-for="plR1"></i><img class="pl" id="plR1" src="img/skins/red-colt.webp" alt=""><i class="ring r" data-for="plR2"></i><img class="pl" id="plR2" src="img/skins/red-carl.webp" alt=""><i class="ring r" data-for="plR3"></i><img class="pl" id="plR3" src="img/skins/red-bull.webp" alt="">
+      <div class="ball-shadow" id="ballShadow"></div><div class="ball" id="ball"></div>
+      <div class="goal-text" id="goalText">GOAL!</div>
+      <div class="score"><span class="sb">0</span> : <span class="sr">0</span></div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-card-text">
         <p class="hero-kicker">Brawl Stars Club · TroopersTV</p>
-        <h1 class="hero-title" id="clubName">TROOPERS</h1>
+        <h1 class="hero-title">WERDE EIN<br><span id="clubName">TROOPER</span>!</h1>
         <div class="hero-chips">
           <span class="chip" id="clubTag">#…</span>
           <span class="chip trophy"><i class="ico-trophy"></i><b id="heroTrophies">0</b></span>
-          <span class="chip"><b id="heroMembers">0</b>/30 Mitglieder</span>
+          <span class="chip"><b id="heroMembers">0</b>/30</span>
           <span class="chip" id="heroType">offen</span>
         </div>
+        <a class="pill-btn big" href="https://link.brawlstars.com/invite/band/de?tag=2VRLRP9PU&amp;token=wrszz63f" target="_blank" rel="noopener">🪖 CLUB BEITRETEN</a>
       </div>
+      <img class="hero-primo" src="https://cdn.brawlify.com/brawlers/model/16000010.png" alt="El Primo">
     </div>
     <div class="data-banner" id="dataBanner" hidden></div>
   </header>
+
+  <div class="join-bar" id="joinBar">
+    <span><b>TROOPERS</b> · aktiver Club, <b id="joinFree">freie</b> Plätze</span>
+    <a class="pill-btn" href="https://link.brawlstars.com/invite/band/de?tag=2VRLRP9PU&amp;token=wrszz63f" target="_blank" rel="noopener">CLUB BEITRETEN</a>
+  </div>
 
   <main>
     <!-- ================= VIDEOS ================= -->
