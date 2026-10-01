@@ -960,10 +960,12 @@ select, input[type=search] { border: 0; border-radius: 999px; box-shadow: 0 3px 
   background: linear-gradient(to top, var(--bg) 0, rgba(7,8,11,.75) 22%, rgba(7,8,11,0) 55%),
               linear-gradient(to right, rgba(7,8,11,.7) 0, rgba(7,8,11,0) 50%); }
 /* Die „Werde ein Trooper“-Box (mit El Primo) bleibt wie gehabt und sitzt höher, mitten auf dem Video */
-.hero-card { position: absolute; z-index: 6; left: 0; right: 0; bottom: clamp(36px, 12%, 140px); margin: 0 auto; }
+.hero-card { position: absolute; z-index: 6; left: 0; right: 0; bottom: clamp(36px, 12%, 140px); margin: 0 auto;
+  background: rgba(20, 22, 28, .5); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 20px 50px rgba(0,0,0,.45);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 @media (max-width: 640px) {
   .hero-video { height: min(110vw, 460px); }
-  .hero-card { position: relative; bottom: auto; width: calc(100% - 24px); margin: -150px auto 10px; }
+  .hero-card { position: relative; bottom: auto; width: calc(100% - 24px); margin: -300px auto 10px; }
 }
 /* Troopers TV: TV und Handy gleich hoch, passen in den Bildschirm */
 .tv-stage, .tv-rows { max-width: 1440px; margin-inline: auto; }
