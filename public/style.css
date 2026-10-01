@@ -959,22 +959,12 @@ select, input[type=search] { border: 0; border-radius: 999px; box-shadow: 0 3px 
 .hero-video::after { content: ''; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(to top, var(--bg) 0, rgba(7,8,11,.75) 22%, rgba(7,8,11,0) 55%),
               linear-gradient(to right, rgba(7,8,11,.7) 0, rgba(7,8,11,0) 50%); }
-.hero-card { position: absolute; z-index: 6; left: max(20px, calc((100vw - 1400px) / 2 + 20px)); bottom: clamp(24px, 6vh, 70px); margin: 0;
-  width: min(560px, calc(100% - 40px)); grid-template-columns: 1fr; padding: 22px 26px; border-radius: 24px;
-  background: rgba(20, 22, 28, .5); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 20px 50px rgba(0,0,0,.45);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-.hero-primo { display: none; }
+/* Die „Werde ein Trooper“-Box (mit El Primo) bleibt wie gehabt und sitzt höher, mitten auf dem Video */
+.hero-card { position: absolute; z-index: 6; left: 0; right: 0; bottom: clamp(36px, 12%, 140px); margin: 0 auto; }
 @media (max-width: 640px) {
-  .hero-video { height: min(115vw, 480px); }
-  .hero-card { left: 12px; right: 12px; bottom: 12px; width: auto; padding: 12px 14px; text-align: left; }
-  .hero-kicker { display: none; }
-  .hero-card-text { justify-items: start; gap: 8px; }
-  .hero-chips { justify-content: flex-start; }
-  .hero-title { font-size: 28px; }
-  .chip { font-size: 11px; padding: 3px 8px; }
-  .pill-btn.big { font-size: 16px; padding: 9px 18px; }
+  .hero-video { height: min(110vw, 460px); }
+  .hero-card { position: relative; bottom: auto; width: calc(100% - 24px); margin: -150px auto 10px; }
 }
-
 /* Troopers TV: TV und Handy gleich hoch, passen in den Bildschirm */
 .tv-stage, .tv-rows { max-width: 1440px; margin-inline: auto; }
 .join-bar { display: none !important; }
