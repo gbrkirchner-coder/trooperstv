@@ -274,30 +274,59 @@ async function renderTV() {
   const embed = (id, title) => `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
   const meta = (v) => `${date(v.published)}${v.views != null ? ` · ${fmt(v.views)} Aufrufe` : ''}`;
 
-  // --- TV (lange Videos) ---
-  let cur = 0;
-  const show = (i, autoplay) => {
-    if (!videos.length) return;
-    cur = (i + videos.length) % videos.length;
-    const v = videos[cur], p = $('#tvPlayer');
-    p.innerHTML = autoplay ? embed(v.id, v.title)
-      : `<img src="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg" alt=""><span class="tv-play"></span><div class="tv-caption">${esc(clean(v.title))}</div>`;
-    p.onclick = autoplay ? null : () => show(cur, true);
-    $('#tvNow').textContent = `${cur + 1} / ${videos.length} · ${clean(v.title)}`;
-    document.querySelectorAll('#tvList .strip-card').forEach((c) => c.classList.toggle('active', +c.dataset.i === cur));
+  // Horizontales Wisch-Band (TV und Handy): Position, Springen, Pfeiltasten
+  const hFeed = (feed, onSettle) => {
+    const n = () => feed.children.length;
+    const idx = () => Math.max(0, Math.min(n() - 1, Math.round(feed.scrollLeft / (feed.clientWidth || 1))));
+    let settle, target = null;
+    const go = (i, smooth = true) => {
+      const k = Math.max(0, Math.min(n() - 1, i));
+      target = k; feed.scrollTo({ left: k * feed.clientWidth, behavior: smooth ? 'smooth' : 'auto' });
+      onSettle(k);
+    };
+    feed.addEventListener('scroll', () => {
+      clearTimeout(settle);
+      settle = setTimeout(() => { const i = idx(); if (target === null || i === target) { target = null; onSettle(i); } }, 160);
+    }, { passive: true });
+    ['pointerdown', 'touchstart', 'wheel'].forEach((ev) => feed.addEventListener(ev, () => { target = null; }, { passive: true }));   // Nutzer wischt selbst
+    feed.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); go(idx() + 1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); go(idx() - 1); }
+    });
+    return { idx: () => target ?? idx(), go };
   };
+  // Leiste unter den Playern: aktive Karte markieren und mittig ins Bild holen
+  const markStrip = (strip, i) => strip.querySelectorAll('.strip-card').forEach((c) => {
+    const on = +c.dataset.i === i; c.classList.toggle('active', on);
+    if (on && strip.scrollWidth > strip.clientWidth) strip.scrollTo({ left: c.offsetLeft - (strip.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' });
+  });
+
+  // --- TV (lange Videos): horizontal wischen oder ◀ ▶, Tippen spielt ab ---
   if (!videos.length) { $('#tvPlayer').innerHTML = '<p class="tv-empty">Noch keine Videos – bald geht’s los! 🎬</p>'; }
   else {
+    const tv = $('#tvPlayer');
+    tv.innerHTML = videos.map((v, i) => `
+      <div class="long-card" data-i="${i}" data-id="${v.id}">
+        <img src="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg" alt="" loading="${i < 2 ? 'eager' : 'lazy'}"><span class="tv-play"></span><div class="tv-caption">${esc(clean(v.title))}</div>
+      </div>`).join('');
+    const stopTV = () => tv.querySelectorAll('.long-card iframe').forEach((f) => f.remove());
+    const label = (i) => { $('#tvNow').textContent = `${i + 1} / ${videos.length} · ${clean(videos[i].title)}`; markStrip($('#tvList'), i); };
+    const feed = hFeed(tv, (i) => { if (!tv.children[i].querySelector('iframe')) stopTV(); label(i); });
+    const play = (i) => { stopTV(); tv.children[i].insertAdjacentHTML('beforeend', embed(videos[i].id, videos[i].title)); };
+    tv.addEventListener('click', (e) => { const c = e.target.closest('.long-card'); if (c && !c.querySelector('iframe')) play(+c.dataset.i); });
     $('#tvList').innerHTML = videos.map((v, i) => `
       <button class="strip-card" data-i="${i}"><img src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="" loading="lazy">
         <span>${esc(clean(v.title))}<small>${meta(v)}</small></span></button>`).join('');
-    $('#tvList').addEventListener('click', (e) => { const c = e.target.closest('.strip-card'); if (c) { show(+c.dataset.i, true); $('#tv').scrollIntoView({ behavior: 'smooth' }); } });
-    $('#tvPrev').onclick = () => show(cur - 1, true);
-    $('#tvNext').onclick = () => show(cur + 1, true);
-    show(0, false);
+    $('#tvList').addEventListener('click', (e) => {
+      const c = e.target.closest('.strip-card'); if (!c) return;
+      const i = +c.dataset.i; feed.go(i, false); play(i); $('#tv').scrollIntoView({ behavior: 'smooth' });
+    });
+    $('#tvPrev').onclick = () => feed.go(feed.idx() - 1);
+    $('#tvNext').onclick = () => feed.go(feed.idx() + 1);
+    label(0);
   }
 
-  // --- Handy (Shorts): vertikal wischen oder ▲▼, Tippen spielt ab ---
+  // --- Handy (Shorts): horizontal wischen oder ◀ ▶ ---
   if (!shorts.length) return;
   $('#tvShortsWrap').hidden = false;
   const feed = $('#tvShorts');
@@ -322,15 +351,10 @@ async function renderTV() {
       [400, 1200].forEach((ms) => setTimeout(() => { cmd(f, 'playVideo'); if (soundOn) cmd(f, 'unMute'); }, ms));
     });
   };
-  const idx = () => Math.round(feed.scrollTop / (feed.clientHeight || 1));
-  const go = (i) => { const n = Math.max(0, Math.min(cards.length - 1, i)); feed.scrollTo({ top: n * feed.clientHeight, behavior: 'smooth' }); };
-  const label = () => {
-    const i = idx(); $('#shortNow').textContent = `${i + 1} / ${cards.length}`;
-    document.querySelectorAll('#shortStrip .strip-card').forEach((c) => c.classList.toggle('active', +c.dataset.i === i));
-  };
-  let visible = false, settle;
-  const playCurrent = () => { if (visible) play(cards[Math.min(cards.length - 1, idx())]); };
-  feed.addEventListener('scroll', () => { label(); clearTimeout(settle); settle = setTimeout(playCurrent, 180); }, { passive: true });
+  let visible = false;
+  const label = (i = idx()) => { $('#shortNow').textContent = `${i + 1} / ${cards.length}`; markStrip($('#shortStrip'), i); };
+  const playCurrent = (i = idx()) => { if (visible) play(cards[Math.min(cards.length - 1, i)]); };
+  const { idx, go } = hFeed(feed, (i) => { label(i); playCurrent(i); });
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; visible ? playCurrent() : stop(); }, { threshold: 0.5 }).observe(feed);
   document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else playCurrent(); });
   const snd = $('#shortSound');
@@ -341,11 +365,10 @@ async function renderTV() {
   $('#shortPrev').onclick = () => go(idx() - 1);
   $('#shortNext').onclick = () => go(idx() + 1);
   feed.tabIndex = 0;
-  feed.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown') { e.preventDefault(); go(idx() + 1); } if (e.key === 'ArrowUp') { e.preventDefault(); go(idx() - 1); } });
   $('#shortStrip').innerHTML = shorts.map((v, i) => `
     <button class="strip-card short" data-i="${i}"><img src="https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'" alt="" loading="lazy">
       <span>${esc(clean(v.title))}<small>${meta(v)}</small></span></button>`).join('');
-  $('#shortStrip').addEventListener('click', (e) => { const c = e.target.closest('.strip-card'); if (!c) return; go(+c.dataset.i); $('#tv').scrollIntoView({ behavior: 'smooth' }); });
+  $('#shortStrip').addEventListener('click', (e) => { const c = e.target.closest('.strip-card'); if (!c) return; go(+c.dataset.i, false); $('#tv').scrollIntoView({ behavior: 'smooth' }); });
   label();
 }
 

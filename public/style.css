@@ -922,3 +922,86 @@ select, input[type=search] { border: 0; border-radius: 999px; box-shadow: 0 3px 
 .studio-btns .no { background: linear-gradient(#ff6b7a, #d62839); }
 .studio-btns .more-btn:disabled { opacity: .5; cursor: wait; }
 @media (max-width: 640px) { .studio-grid { grid-template-columns: 1fr 1fr; gap: 12px; } .studio-btns { flex-direction: column; } }
+
+/* =====================================================================
+   V5: Kopf im Hintergrund, Menü (Desktop + Handy-Tableiste), horizontale Player und Leisten
+   ===================================================================== */
+/* --- Menü --- */
+.nav { background: rgba(0,0,0,.72); -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3);
+  border-bottom: 1px solid rgba(255,255,255,.08); padding: 8px max(16px, calc((100vw - min(1720px, 92vw)) / 2)); }
+.nav-links { position: absolute; left: 50%; transform: translateX(-50%); gap: 4px; padding: 4px; background: rgba(255,255,255,.06); border-radius: 999px; }
+.nav-links a { display: inline-flex; align-items: center; gap: 7px; padding: 7px 16px; background: transparent; color: #dfe4ee; box-shadow: none; transition: background .15s, color .15s; }
+.nav-links a i { font-style: normal; font-size: 14px; line-height: 1; }
+.nav-links a:hover { background: rgba(255,255,255,.12); color: #fff; border-color: transparent; }
+.nav-links a.active, .nav-links a.active:hover { background: var(--yellow); color: #0b0b12; box-shadow: 0 3px 0 rgba(0,0,0,.5); }
+.nav-join:hover { filter: brightness(1.08); }
+@media (max-width: 760px) {
+  /* kein backdrop-filter am Menü: er würde die feste Tableiste an den Kopf binden */
+  .nav { flex-wrap: nowrap; padding: 6px 12px; -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(0,0,0,.9); }
+  /* Handy: Bereiche als feste Tableiste unten, gut mit dem Daumen erreichbar */
+  .nav-links { display: grid !important; position: fixed; z-index: 60; left: 0; right: 0; bottom: 0; top: auto; transform: none; width: auto; order: 0;
+    grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); border-radius: 0;
+    background: rgba(0,0,0,.86); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid rgba(255,255,255,.1); }
+  .nav-links a { flex-direction: column; gap: 2px; padding: 6px 2px; font-size: 12px; border-radius: 12px; }
+  .nav-links a i { font-size: 19px; }
+  .nav-links a.active { box-shadow: none; }
+  body { padding-bottom: calc(66px + env(safe-area-inset-bottom)); }
+  .nav-join { font-size: 13px; padding: 6px 12px; }
+}
+
+/* --- Kopfbereich rückt in den Hintergrund: Video liegt hinter Karte und Videos --- */
+.hero { position: relative; padding-top: clamp(64px, 8vw, 130px); }
+.hero-video { position: absolute; z-index: -2; top: 0; left: 0; right: 0; width: 100%; height: clamp(340px, 50vw, 82vh); clip-path: none; background: #0b1020;
+  -webkit-mask-image: linear-gradient(#000 40%, transparent 98%); mask-image: linear-gradient(#000 40%, transparent 98%); }
+.hero-video::after { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(7,8,11,.28), rgba(7,8,11,.55) 55%, rgba(7,8,11,.75)); pointer-events: none; }
+.hero-card { margin: 0 auto 0; width: max-content; max-width: calc(100% - 28px); padding: 14px 22px; gap: 14px; border-radius: 22px;
+  background: rgba(22,24,31,.72); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 8px 0 rgba(0,0,0,.45); }
+.hero-card-text { gap: 8px; grid-template-columns: auto auto; align-items: center; justify-content: start; column-gap: 22px; }
+.hero-kicker { grid-column: 1 / -1; }
+.hero-title { font-size: clamp(26px, 3.3vw, 46px); -webkit-text-stroke-width: 2px; text-shadow: 0 3px 0 #0b0b12; }
+.hero-title br { display: none; }
+.hero-card-text .hero-chips { grid-column: 1; }
+.hero-card-text .pill-btn.big { grid-column: 2; grid-row: 2 / span 2; font-size: 17px; padding: 10px 20px; }
+.hero-primo { width: clamp(90px, 9vw, 150px); margin: -54px -6px -14px 0; }
+/* Videos-Bereich beginnt direkt unter der Karte, noch auf dem Kopf-Video */
+#tv { padding-top: 26px; }
+#tv::before { -webkit-mask-image: linear-gradient(transparent 0, rgba(0,0,0,.55) 140px, #000 320px); mask-image: linear-gradient(transparent 0, rgba(0,0,0,.55) 140px, #000 320px); clip-path: none; }
+#tv > .title { text-shadow: 0 3px 0 #0b0b12, 0 0 24px rgba(0,0,0,.6); }
+@media (max-width: 760px) {
+  .hero { padding-top: 120px; }
+  .hero-video { height: 340px; }
+  .hero-card { padding: 12px 14px; margin-top: 0; }
+  .hero-card-text { grid-template-columns: 1fr; justify-items: center; }
+  .hero-card-text .pill-btn.big { grid-column: 1; grid-row: auto; }
+  .hero-primo { display: none; }
+}
+
+/* --- TV und Handy passen nebeneinander in die Seitenbreite (Shorts ragen nicht mehr hinaus) --- */
+:root { --stageH: clamp(300px, calc(100vh - 330px), 680px); --stageW: min(1720px, 92vw); }
+.tv-set { width: min(calc(var(--stageH) * 1.7778 + 40px), calc(var(--stageW) - var(--stageH) * 0.5625 - 120px)); }
+@media (max-width: 860px) { :root { --stageH: min(64vh, 520px); } .tv-stage { grid-template-columns: minmax(0, 1fr); } .tv-set, .phone-set { width: 100%; min-width: 0; } }
+
+/* --- Lange Videos: horizontales Wisch-Band im TV --- */
+.tv-feed { display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; outline: none; cursor: default; }
+.tv-feed::-webkit-scrollbar { display: none; }
+.long-card { position: relative; flex: 0 0 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; cursor: pointer; overflow: hidden; background: #000; }
+.long-card iframe { z-index: 3; }
+.tv-feed .tv-empty { margin: auto; }
+
+/* --- Shorts: horizontal wischen --- */
+.shorts-feed { display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
+.short-card { flex: 0 0 100%; height: 100%; }
+
+/* --- Leisten „Alle Videos“ / „Alle Shorts“: horizontal, höchstens 10 gleichzeitig, mittig --- */
+.tv-rows { gap: 4px; grid-template-columns: minmax(0, 1fr); }
+.tv-rows .mini-title { text-align: center; }
+.tv-strip { display: flex; gap: 10px; overflow-x: auto; padding: 4px 4px 12px; scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.35) transparent; }
+.tv-strip > .strip-card { flex: 0 0 max(150px, calc((100% - 90px) / 10)); }
+.tv-strip.shorts > .strip-card { flex-basis: max(104px, calc((100% - 90px) / 10)); }
+.tv-strip > :first-child { margin-left: auto; }
+.tv-strip > :last-child { margin-right: auto; }
+.strip-card span { font-size: 11px; }
+@media (max-width: 760px) {
+  .tv-strip > .strip-card { flex-basis: 42vw; }
+  .tv-strip.shorts > .strip-card { flex-basis: 28vw; }
+}
