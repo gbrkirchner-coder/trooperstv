@@ -950,30 +950,20 @@ select, input[type=search] { border: 0; border-radius: 999px; box-shadow: 0 3px 
 }
 
 /* --- Kopfbereich rückt in den Hintergrund: Video liegt hinter Karte und Videos --- */
-.hero { position: relative; padding-top: clamp(64px, 8vw, 130px); }
+.hero { position: relative; padding-top: clamp(70px, 9vw, 150px); }
 .hero-video { position: absolute; z-index: -2; top: 0; left: 0; right: 0; width: 100%; height: clamp(340px, 50vw, 82vh); clip-path: none; background: #0b1020;
   -webkit-mask-image: linear-gradient(#000 40%, transparent 98%); mask-image: linear-gradient(#000 40%, transparent 98%); }
 .hero-video::after { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(7,8,11,.28), rgba(7,8,11,.55) 55%, rgba(7,8,11,.75)); pointer-events: none; }
-.hero-card { margin: 0 auto 0; width: max-content; max-width: calc(100% - 28px); padding: 14px 22px; gap: 14px; border-radius: 22px;
-  background: rgba(22,24,31,.72); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 8px 0 rgba(0,0,0,.45); }
-.hero-card-text { gap: 8px; grid-template-columns: auto auto; align-items: center; justify-content: start; column-gap: 22px; }
-.hero-kicker { grid-column: 1 / -1; }
-.hero-title { font-size: clamp(26px, 3.3vw, 46px); -webkit-text-stroke-width: 2px; text-shadow: 0 3px 0 #0b0b12; }
-.hero-title br { display: none; }
-.hero-card-text .hero-chips { grid-column: 1; }
-.hero-card-text .pill-btn.big { grid-column: 2; grid-row: 2 / span 2; font-size: 17px; padding: 10px 20px; }
-.hero-primo { width: clamp(90px, 9vw, 150px); margin: -54px -6px -14px 0; }
+/* „Werde ein Trooper“-Karte mit El Primo bleibt wie gehabt, sitzt nur weiter oben auf dem Video */
+.hero-card { margin: 0 auto 10px; }
 /* Videos-Bereich beginnt direkt unter der Karte, noch auf dem Kopf-Video */
 #tv { padding-top: 26px; }
 #tv::before { -webkit-mask-image: linear-gradient(transparent 0, rgba(0,0,0,.55) 140px, #000 320px); mask-image: linear-gradient(transparent 0, rgba(0,0,0,.55) 140px, #000 320px); clip-path: none; }
 #tv > .title { text-shadow: 0 3px 0 #0b0b12, 0 0 24px rgba(0,0,0,.6); }
 @media (max-width: 760px) {
-  .hero { padding-top: 120px; }
-  .hero-video { height: 340px; }
-  .hero-card { padding: 12px 14px; margin-top: 0; }
-  .hero-card-text { grid-template-columns: 1fr; justify-items: center; }
-  .hero-card-text .pill-btn.big { grid-column: 1; grid-row: auto; }
-  .hero-primo { display: none; }
+  .hero { padding-top: 110px; }
+  .hero-video { height: 360px; }
+  .hero-card { margin-top: 0; }
 }
 
 /* --- TV und Handy passen nebeneinander in die Seitenbreite (Shorts ragen nicht mehr hinaus) --- */
