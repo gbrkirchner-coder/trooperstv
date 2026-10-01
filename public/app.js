@@ -271,82 +271,79 @@ async function renderTV() {
   const shorts = (data?.videos || []).filter((v) => v.short);
   const date = (d) => new Date(d).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
   const clean = (t) => t.replace(/\s*\|\s*Brawl Stars.*$/i, '').replace(/#\S+/g, '').trim();
-  const embed = (id, title) => `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1" title="${esc(title)}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
   const meta = (v) => `${date(v.published)}${v.views != null ? ` · ${fmt(v.views)} Aufrufe` : ''}`;
+  const thumb = (id, big) => `src="https://i.ytimg.com/vi/${id}/${big ? 'maxresdefault' : 'hqdefault'}.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${id}/hqdefault.jpg'"`;
+  const cmd = (f, func) => f?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args: [] }), '*');
 
-  // --- TV (lange Videos) ---
-  let cur = 0;
-  const show = (i, autoplay) => {
-    if (!videos.length) return;
-    cur = (i + videos.length) % videos.length;
-    const v = videos[cur], p = $('#tvPlayer');
-    p.innerHTML = autoplay ? embed(v.id, v.title)
-      : `<img src="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg" alt=""><span class="tv-play"></span><div class="tv-caption">${esc(clean(v.title))}</div>`;
-    p.onclick = autoplay ? null : () => show(cur, true);
-    $('#tvNow').textContent = `${cur + 1} / ${videos.length} · ${clean(v.title)}`;
-    document.querySelectorAll('#tvList .strip-card').forEach((c) => c.classList.toggle('active', +c.dataset.i === cur));
-  };
+  /** Horizontal wischbarer Player (TV oder Handy): Folie einrasten lassen, ◀ ▶, Liste darunter springt mit. */
+  function feed({ list, el, strip, now, prev, next, embed, slide, autoplay }) {
+    el.innerHTML = list.map((v, i) => `<div class="feed-slide" data-i="${i}" data-id="${v.id}">${slide(v)}</div>`).join('');
+    const slides = [...el.children];
+    const idx = () => Math.round(el.scrollLeft / (el.clientWidth || 1));
+    const stop = () => el.querySelectorAll('iframe').forEach((f) => { f.closest('.feed-slide').classList.remove('playing'); f.remove(); });
+    const play = (i) => {
+      const c = slides[i]; if (!c || c.querySelector('iframe')) return;
+      stop(); c.insertAdjacentHTML('beforeend', embed(c.dataset.id)); c.classList.add('playing');
+      const f = c.querySelector('iframe');
+      f.addEventListener('load', () => { f.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1 }), '*'); [400, 1200].forEach((ms) => setTimeout(() => { cmd(f, 'playVideo'); if (feed.soundOn) cmd(f, 'unMute'); }, ms)); });
+    };
+    const go = (i, andPlay) => {
+      const n = (i + slides.length) % slides.length;
+      el.scrollTo({ left: n * el.clientWidth, behavior: 'smooth' });
+      if (andPlay) setTimeout(() => play(n), 350);
+    };
+    const label = () => {
+      const i = idx(), v = list[i]; if (!v) return;
+      now.textContent = `${i + 1} / ${list.length} · ${clean(v.title)}`;
+      strip.querySelectorAll('.strip-card').forEach((c) => c.classList.toggle('active', +c.dataset.i === i));
+      const card = strip.querySelector(`.strip-card[data-i="${i}"]`);   // nur die Liste seitlich mitführen, nicht die Seite
+      if (card) strip.scrollTo({ left: card.offsetLeft - strip.offsetLeft - (strip.clientWidth - card.offsetWidth) / 2, behavior: 'smooth' });
+    };
+    let visible = false, settle;
+    el.addEventListener('scroll', () => {
+      clearTimeout(settle);
+      settle = setTimeout(() => { label(); const i = idx(); if (!slides[i].querySelector('iframe')) { stop(); if (autoplay && visible) play(i); } }, 160);
+    }, { passive: true });
+    el.addEventListener('click', (e) => { const c = e.target.closest('.feed-slide'); if (c && !c.querySelector('iframe')) play(+c.dataset.i); });
+    new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (!visible) stop(); else if (autoplay) play(idx()); }, { threshold: 0.5 }).observe(el);
+    prev.onclick = () => go(idx() - 1, autoplay);
+    next.onclick = () => go(idx() + 1, autoplay);
+    el.tabIndex = 0;
+    el.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') { e.preventDefault(); go(idx() + 1, autoplay); } if (e.key === 'ArrowLeft') { e.preventDefault(); go(idx() - 1, autoplay); } });
+    strip.addEventListener('click', (e) => { const c = e.target.closest('.strip-card'); if (!c) return; $('#tv').scrollIntoView({ behavior: 'smooth' }); go(+c.dataset.i, true); });
+    label();
+    return { stop };
+  }
+  const stripHtml = (list, short) => list.map((v, i) => `
+    <button class="strip-card${short ? ' short' : ''}" data-i="${i}"><img ${thumb(v.id, short)} alt="" loading="lazy">
+      <span>${esc(clean(v.title))}<small>${meta(v)}</small></span></button>`).join('');
+
+  // --- TV (lange Videos): seitlich wischen, Antippen spielt ab ---
   if (!videos.length) { $('#tvPlayer').innerHTML = '<p class="tv-empty">Noch keine Videos – bald geht’s los! 🎬</p>'; }
   else {
-    $('#tvList').innerHTML = videos.map((v, i) => `
-      <button class="strip-card" data-i="${i}"><img src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="" loading="lazy">
-        <span>${esc(clean(v.title))}<small>${meta(v)}</small></span></button>`).join('');
-    $('#tvList').addEventListener('click', (e) => { const c = e.target.closest('.strip-card'); if (c) { show(+c.dataset.i, true); $('#tv').scrollIntoView({ behavior: 'smooth' }); } });
-    $('#tvPrev').onclick = () => show(cur - 1, true);
-    $('#tvNext').onclick = () => show(cur + 1, true);
-    show(0, false);
+    $('#tvList').innerHTML = stripHtml(videos, false);
+    feed({
+      list: videos, el: $('#tvPlayer'), strip: $('#tvList'), now: $('#tvNow'), prev: $('#tvPrev'), next: $('#tvNext'),
+      slide: (v) => `<img ${thumb(v.id, true)} alt="" loading="lazy"><span class="tv-play"></span><div class="tv-caption">${esc(clean(v.title))}</div>`,
+      embed: (id) => `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1&enablejsapi=1" title="TroopersTV Video" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`,
+    });
   }
 
-  // --- Handy (Shorts): vertikal wischen oder ▲▼, Tippen spielt ab ---
+  // --- Handy (Shorts): seitlich wischen; sichtbarer Short läuft stumm in Schleife, Ton-Knopf schaltet um ---
   if (!shorts.length) return;
   $('#tvShortsWrap').hidden = false;
-  const feed = $('#tvShorts');
-  feed.innerHTML = shorts.map((v, i) => `
-    <div class="short-card" data-i="${i}" data-id="${v.id}">
-      <img src="https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'" alt="" loading="lazy">
-      <span class="tv-play small"></span>
-      <div class="short-meta"><b>${esc(clean(v.title))}</b><small>${meta(v)}</small></div>
-    </div>`).join('');
-  const cards = [...feed.children];
-  // Autoplay (Desktop + Handy): sichtbarer Short läuft stumm in Schleife; Ton-Knopf schaltet per IFrame-API um.
-  let soundOn = false;
-  const cmd = (f, func) => f?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args: [] }), '*');
-  const autoEmbed = (id) => `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&playsinline=1&rel=0&modestbranding=1&enablejsapi=1" title="TroopersTV Short" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
-  const stop = () => feed.querySelectorAll('.short-card iframe').forEach((f) => { f.closest('.short-card').classList.remove('playing'); f.remove(); });
-  const play = (c) => {
-    if (c.querySelector('iframe')) return;
-    stop(); c.insertAdjacentHTML('beforeend', autoEmbed(c.dataset.id)); c.classList.add('playing');
-    const f = c.querySelector('iframe');
-    f.addEventListener('load', () => {
-      f.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: 1 }), '*');
-      [400, 1200].forEach((ms) => setTimeout(() => { cmd(f, 'playVideo'); if (soundOn) cmd(f, 'unMute'); }, ms));
-    });
-  };
-  const idx = () => Math.round(feed.scrollTop / (feed.clientHeight || 1));
-  const go = (i) => { const n = Math.max(0, Math.min(cards.length - 1, i)); feed.scrollTo({ top: n * feed.clientHeight, behavior: 'smooth' }); };
-  const label = () => {
-    const i = idx(); $('#shortNow').textContent = `${i + 1} / ${cards.length}`;
-    document.querySelectorAll('#shortStrip .strip-card').forEach((c) => c.classList.toggle('active', +c.dataset.i === i));
-  };
-  let visible = false, settle;
-  const playCurrent = () => { if (visible) play(cards[Math.min(cards.length - 1, idx())]); };
-  feed.addEventListener('scroll', () => { label(); clearTimeout(settle); settle = setTimeout(playCurrent, 180); }, { passive: true });
-  new IntersectionObserver(([e]) => { visible = e.isIntersecting; visible ? playCurrent() : stop(); }, { threshold: 0.5 }).observe(feed);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else playCurrent(); });
+  $('#shortStrip').innerHTML = stripHtml(shorts, true);
+  const sf = feed({
+    list: shorts, el: $('#tvShorts'), strip: $('#shortStrip'), now: $('#shortNow'), prev: $('#shortPrev'), next: $('#shortNext'), autoplay: true,
+    slide: (v) => `<img ${thumb(v.id, true)} alt="" loading="lazy"><span class="tv-play small"></span><div class="short-meta"><b>${esc(clean(v.title))}</b><small>${meta(v)}</small></div>`,
+    embed: (id) => `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&playsinline=1&rel=0&modestbranding=1&enablejsapi=1" title="TroopersTV Short" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`,
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) sf.stop(); });
   const snd = $('#shortSound');
   if (snd) snd.onclick = () => {
-    soundOn = !soundOn; snd.textContent = soundOn ? '🔊' : '🔇'; snd.setAttribute('aria-pressed', soundOn);
-    cmd(feed.querySelector('.short-card iframe'), soundOn ? 'unMute' : 'mute');
+    feed.soundOn = !feed.soundOn; snd.textContent = feed.soundOn ? '🔊' : '🔇'; snd.setAttribute('aria-pressed', feed.soundOn);
+    cmd($('#tvShorts iframe'), feed.soundOn ? 'unMute' : 'mute');
   };
-  $('#shortPrev').onclick = () => go(idx() - 1);
-  $('#shortNext').onclick = () => go(idx() + 1);
-  feed.tabIndex = 0;
-  feed.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown') { e.preventDefault(); go(idx() + 1); } if (e.key === 'ArrowUp') { e.preventDefault(); go(idx() - 1); } });
-  $('#shortStrip').innerHTML = shorts.map((v, i) => `
-    <button class="strip-card short" data-i="${i}"><img src="https://i.ytimg.com/vi/${v.id}/maxresdefault.jpg" onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/${v.id}/hqdefault.jpg'" alt="" loading="lazy">
-      <span>${esc(clean(v.title))}<small>${meta(v)}</small></span></button>`).join('');
-  $('#shortStrip').addEventListener('click', (e) => { const c = e.target.closest('.strip-card'); if (!c) return; go(+c.dataset.i); $('#tv').scrollIntoView({ behavior: 'smooth' }); });
-  label();
 }
 
 // ---------- News ----------
