@@ -922,3 +922,90 @@ select, input[type=search] { border: 0; border-radius: 999px; box-shadow: 0 3px 
 .studio-btns .no { background: linear-gradient(#ff6b7a, #d62839); }
 .studio-btns .more-btn:disabled { opacity: .5; cursor: wait; }
 @media (max-width: 640px) { .studio-grid { grid-template-columns: 1fr 1fr; gap: 12px; } .studio-btns { flex-direction: column; } }
+
+/* =====================================================================
+   V5: Kopf-Video als Hintergrund mit Inhalt darauf, neues Menü,
+   Videos und Listen seitlich wischen
+   ===================================================================== */
+
+/* Menü: Desktop oben als schwebende Leiste, Handy unten als Tab-Leiste */
+.nav { position: sticky; top: 0; z-index: 60; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px;
+  padding: 10px max(16px, calc((100vw - 1400px) / 2)); background: rgba(7, 8, 11, .72); backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4); border-bottom: 1px solid rgba(255,255,255,.08); }
+.nav-logo { justify-self: start; }
+.nav-join { justify-self: end; }
+.nav-links { display: flex !important; gap: 4px; padding: 4px; background: rgba(255,255,255,.06); border-radius: 999px; flex-wrap: nowrap; order: 0; width: auto; }
+.nav-links a { display: inline-flex; align-items: center; gap: 7px; padding: 8px 18px; font-size: 16px; background: transparent; color: #dfe3ec;
+  border-radius: 999px; box-shadow: none; transition: background .15s, color .15s; flex: none; }
+.nav-links a i { font-style: normal; font-size: 15px; }
+.nav-links a:hover { background: rgba(255,255,255,.1); color: #fff; }
+.nav-links a.active { background: var(--yellow); color: #0b0b12; box-shadow: 0 3px 0 rgba(0,0,0,.45); }
+@media (max-width: 760px) {
+  /* backdrop-filter würde die fixierte Tab-Leiste an die Kopfleiste binden */
+  .nav { grid-template-columns: 1fr auto; padding: 8px 12px; background: #07080b; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .nav-links { position: fixed; z-index: 70; left: 10px; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); justify-content: space-around;
+    padding: 6px; background: rgba(12, 13, 18, .88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,.1); border-radius: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  .nav-links a { flex: 1; flex-direction: column; gap: 2px; padding: 6px 2px; font-size: 12px; border-radius: 16px; justify-content: center; }
+  .nav-links a i { font-size: 18px; }
+  body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .join-bar { display: none; }
+}
+
+/* Kopfbereich: Video tritt zurück, Karte liegt darauf */
+.hero { position: relative; }
+.hero-video { height: clamp(420px, min(56.25vw, 82vh), 900px); clip-path: none; }
+.hero-video video { filter: brightness(.82) saturate(1.05); object-position: center 35%; }
+.hero-video::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, var(--bg) 0, rgba(7,8,11,.75) 22%, rgba(7,8,11,0) 55%),
+              linear-gradient(to right, rgba(7,8,11,.7) 0, rgba(7,8,11,0) 50%); }
+.hero-card { position: absolute; z-index: 6; left: max(20px, calc((100vw - 1400px) / 2 + 20px)); bottom: clamp(24px, 6vh, 70px); margin: 0;
+  width: min(560px, calc(100% - 40px)); grid-template-columns: 1fr; padding: 22px 26px; border-radius: 24px;
+  background: rgba(20, 22, 28, .5); border: 1px solid rgba(255,255,255,.14); box-shadow: 0 20px 50px rgba(0,0,0,.45);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.hero-primo { display: none; }
+@media (max-width: 640px) {
+  .hero-video { height: min(115vw, 480px); }
+  .hero-card { left: 12px; right: 12px; bottom: 12px; width: auto; padding: 12px 14px; text-align: left; }
+  .hero-kicker { display: none; }
+  .hero-card-text { justify-items: start; gap: 8px; }
+  .hero-chips { justify-content: flex-start; }
+  .hero-title { font-size: 28px; }
+  .chip { font-size: 11px; padding: 3px 8px; }
+  .pill-btn.big { font-size: 16px; padding: 9px 18px; }
+}
+
+/* Troopers TV: TV und Handy gleich hoch, passen in den Bildschirm */
+.tv-stage, .tv-rows { max-width: 1440px; margin-inline: auto; }
+.join-bar { display: none !important; }
+:root { --stageH: clamp(240px, calc(100vh - 330px), 540px); }
+.tv-stage { grid-template-columns: auto auto; justify-content: center; align-items: start; gap: clamp(16px, 2.5vw, 40px); }
+.tv-set { width: min(calc(var(--stageH) * 1.7778 + 36px), calc(100vw - var(--stageH) * 0.5625 - 120px)); }
+.shorts-feed { height: var(--stageH); width: calc(var(--stageH) * 0.5625); }
+.shorts-phone { max-height: none; padding: 8px; border-radius: 30px; }
+@media (max-width: 860px) {
+  :root { --stageH: min(64vh, 500px); }
+  .tv-stage { grid-template-columns: 1fr; }
+  .tv-set { width: 100%; }
+}
+
+/* Seitlich wischen statt hoch/runter */
+.tv-feed { display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; outline: none; }
+.tv-feed::-webkit-scrollbar { display: none; }
+.tv-player.tv-feed { cursor: default; }
+.feed-slide { position: relative; flex: 0 0 100%; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; overflow: hidden; background: #000; cursor: pointer; }
+.tv-player .feed-slide { aspect-ratio: 16 / 9; }
+.feed-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.feed-slide iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.feed-slide.playing img, .feed-slide.playing .tv-play, .feed-slide.playing .short-meta, .feed-slide.playing .tv-caption { display: none; }
+.shorts-feed.tv-feed { scroll-snap-type: x mandatory; }
+
+/* Listen „Alle Videos / Alle Shorts“: seitlich, max. 10 sichtbar, mittig unter den Playern */
+.tv-rows { gap: 4px; margin-top: 26px; }
+.tv-rows .mini-title { text-align: center; }
+.tv-strip { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 12px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.tv-strip > :first-child { margin-left: auto; }
+.tv-strip > :last-child { margin-right: auto; }
+.tv-strip .strip-card { flex: 0 0 max(150px, calc((100% - 90px) / 10)); }
+.tv-strip.shorts .strip-card { flex-basis: max(108px, calc((100% - 90px) / 10)); }
+.strip-card span { font-size: 11px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }

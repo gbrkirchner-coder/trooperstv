@@ -34,7 +34,7 @@
   <nav class="nav">
     <a href="#videos" class="nav-logo"><img src="maskottchen.png" alt=""> <span>TROOPERS</span></a>
     <div class="nav-links" role="tablist">
-      <a href="#videos" data-view="videos">▶ Videos</a><a href="#guides" data-view="guides">📘 Guides</a><a href="#statistik" data-view="statistik">📊 Statistik</a><a href="#clan" data-view="clan">🪖 Clan</a>
+      <a href="#videos" data-view="videos"><i>▶</i><span>Videos</span></a><a href="#guides" data-view="guides"><i>📘</i><span>Guides</span></a><a href="#statistik" data-view="statistik"><i>📊</i><span>Statistik</span></a><a href="#clan" data-view="clan"><i>🪖</i><span>Clan</span></a>
     </div>
     <a class="pill-btn nav-join" href="https://link.brawlstars.com/invite/band/de?tag=2VRLRP9PU&amp;token=wrszz63f" target="_blank" rel="noopener">CLUB BEITRETEN</a>
   </nav>
@@ -73,10 +73,10 @@
     <div class="view" id="view-videos" data-view="videos">
     <section id="tv" class="section">
       <h2 class="title">Troopers TV</h2>
-      <p class="sub">Unsere Clips direkt hier anschauen – Videos im TV, Shorts im Handy. Kanal: <b id="tvChannel">TroopersTV</b> (@BS-TroopersTV)</p>
+      <p class="sub">Unsere Clips direkt hier anschauen – seitlich wischen, antippen zum Abspielen. Kanal: <b id="tvChannel">TroopersTV</b> (@BS-TroopersTV)</p>
       <div class="tv-stage">
         <div class="tv-set">
-          <div class="tv-frame"><div class="tv-player" id="tvPlayer"></div></div>
+          <div class="tv-frame"><div class="tv-player tv-feed" id="tvPlayer"></div></div>
           <div class="tv-controls">
             <button class="ch-btn" id="tvPrev" aria-label="Vorheriges Video">◀</button>
             <span class="tv-now" id="tvNow"></span>
@@ -85,11 +85,11 @@
           <div class="tv-stand" aria-hidden="true"></div>
         </div>
         <div class="phone-set" id="tvShortsWrap" hidden>
-          <div class="shorts-phone"><div class="phone-notch" aria-hidden="true"></div><div class="shorts-feed" id="tvShorts"></div></div>
+          <div class="shorts-phone"><div class="phone-notch" aria-hidden="true"></div><div class="shorts-feed tv-feed" id="tvShorts"></div></div>
           <div class="phone-controls">
-            <button class="ch-btn" id="shortPrev" aria-label="Vorheriger Short">▲</button>
+            <button class="ch-btn" id="shortPrev" aria-label="Vorheriger Short">◀</button>
             <span class="tv-now" id="shortNow"></span>
-            <button class="ch-btn" id="shortNext" aria-label="Nächster Short">▼</button>
+            <button class="ch-btn" id="shortNext" aria-label="Nächster Short">▶</button>
             <button class="ch-btn" id="shortSound" aria-label="Ton an/aus" aria-pressed="false">🔇</button>
           </div>
         </div>
